@@ -34,13 +34,13 @@ namespace SimpleInjector
     /// <summary>Internal helper for string resources.</summary>
     internal static class StringResources
     {
-        internal static bool UseFullyQualifiedTypeNames { get; set; } = false;
-
         // Assembly.Location only exists in .NETStandard1.5 and up, .NET4.0 and PCL, but we only compile
         // against .NETStandard1.0 and .NETStandard1.3. We don't want to add an extra build directly, solely
         // for the Location property.
         private static readonly PropertyInfo AssemblyLocationProperty =
             typeof(Assembly).GetProperties().SingleOrDefault(p => p.Name == "Location");
+
+        internal static bool UseFullyQualifiedTypeNames { get; set; } = false;
 
         internal static string ContainerCanNotBeChangedAfterUse(string stackTrace)
         {
@@ -362,11 +362,6 @@ namespace SimpleInjector
                 service.IsInterface() ? "implement" : "inherit from",
                 service.TypeName());
 
-        internal static string TheInitializersCouldNotBeApplied(Type type, Exception innerException) =>
-            string.Format(CultureInfo.InvariantCulture,
-                "The initializer(s) for type {0} could not be applied. {1}",
-                type.TypeName(), innerException.Message);
-
         internal static string DependencyInjectionBehaviorReturnedNull(IDependencyInjectionBehavior behavior) =>
             string.Format(CultureInfo.InvariantCulture,
                 "The {0} that was registered through the Container.{3}.{4} property, returned a null " +
@@ -379,14 +374,12 @@ namespace SimpleInjector
                 nameof(ContainerOptions.DependencyInjectionBehavior));
 
         internal static string ConstructorResolutionBehaviorReturnedNull(
-            IConstructorResolutionBehavior selectionBehavior, Type serviceType, Type implementationType) =>
+            IConstructorResolutionBehavior selectionBehavior, Type implementationType) =>
             string.Format(CultureInfo.InvariantCulture,
-                "The {0} that was registered through Container.{5}.{6} returned a null reference after " +
-                "its {7}(Type, Type) method was supplied with values '{1}' for serviceType and '{2}' for " +
-                "implementationType. {3}.{7} implementations should never return null, but should throw " +
-                "a {4} with an expressive message instead.",
+                "The {0} that was registered through Container.{4}.{5} returned a null reference after " +
+                "its {6} method was supplied with implementationType '{1}'. {2}.{6} implementations " +
+                "should never return null, but should throw a {3} with an expressive message instead.",
                 selectionBehavior.GetType().TypeName(),
-                serviceType.TypeName(),
                 implementationType.TypeName(),
                 nameof(IConstructorResolutionBehavior),
                 typeof(ActivationException).FullName,
@@ -395,13 +388,12 @@ namespace SimpleInjector
                 nameof(IConstructorResolutionBehavior.GetConstructor));
 
         internal static string LifestyleSelectionBehaviorReturnedNull(
-            ILifestyleSelectionBehavior selectionBehavior, Type serviceType, Type implementationType) =>
+            ILifestyleSelectionBehavior selectionBehavior, Type implementationType) =>
             string.Format(CultureInfo.InvariantCulture,
-                "The {0} that was registered through Container.{4}.{5} returned a null reference after " +
-                "its {6}(Type, Type) method was supplied with values '{1}' for serviceType and '{2}' for " +
-                "implementationType. {3}.{6} implementations should never return null.",
+                "The {0} that was registered through Container.{3}.{4} returned a null reference after " +
+                "its {5} method was supplied with implementationType '{1}'. {2}.{5} implementations " +
+                "should never return null.",
                 selectionBehavior.GetType().TypeName(),
-                serviceType.TypeName(),
                 implementationType.TypeName(),
                 nameof(ILifestyleSelectionBehavior),
                 nameof(Container.Options),
@@ -548,14 +540,15 @@ namespace SimpleInjector
             ScopedLifestyle lifestyle) =>
             string.Format(CultureInfo.InvariantCulture,
                 "The {0} is registered as '{1}' lifestyle, but the instance is requested outside the " +
-                "context of a {1}.",
+                "context of an active ({1}) scope.",
                 serviceType.TypeName(),
                 lifestyle.Name);
 
-        internal static string ThisMethodCanOnlyBeCalledWithinTheContextOfAnActiveScope(string lifestyleName) =>
+        internal static string ThisMethodCanOnlyBeCalledWithinTheContextOfAnActiveScope(
+            ScopedLifestyle lifestyle) =>
             string.Format(CultureInfo.InvariantCulture,
-                "This method can only be called within the context of an active {0}.",
-                lifestyleName);
+                "This method can only be called within the context of an active ({0}) scope.",
+                lifestyle.Name);
 
         internal static string DecoratorFactoryReturnedNull(Type serviceType) =>
             string.Format(CultureInfo.InvariantCulture,

@@ -505,8 +505,7 @@ namespace SimpleInjector
                 // will cause (incorrect) diagnostic warnings.
                 if (!this.emptyAndRedirectedCollectionRegistrationCache.TryGetValue(serviceType, out producer))
                 {
-                    producer = this.TryBuildCollectionInstanceProducer(serviceType)
-                        ?? this.TryBuildEmptyCollectionInstanceProducerForEnumerable(serviceType);
+                    producer = this.TryBuildCollectionInstanceProducer(serviceType);
 
                     this.emptyAndRedirectedCollectionRegistrationCache[serviceType] = producer;
                 }
@@ -543,31 +542,6 @@ namespace SimpleInjector
             return null;
         }
 
-        private InstanceProducer TryBuildEmptyCollectionInstanceProducerForEnumerable(Type serviceType)
-        {
-#pragma warning disable 0618
-            if (!this.Options.ResolveUnregisteredCollections)
-            {
-                return null;
-            }
-#pragma warning restore 0618
-
-            if (serviceType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-            {
-                // During the time that this method is called we are after the registration phase and there is
-                // no registration for this IEnumerable<T> type (and unregistered type resolution didn't pick
-                // it up). This means that we will must always return an empty set and we will do this by
-                // registering a SingletonInstanceProducer with an empty array of that type.
-                var producer = this.BuildEmptyCollectionInstanceProducerForEnumerable(serviceType);
-
-                producer.IsContainerAutoRegistered = true;
-
-                return producer;
-            }
-
-            return null;
-        }
-
         private InstanceProducer BuildEmptyCollectionInstanceProducerForEnumerable(Type enumerableType)
         {
             Type elementType = enumerableType.GetGenericArguments()[0];
@@ -589,7 +563,7 @@ namespace SimpleInjector
                 return this.GetOrBuildInstanceProducerForConcreteUnregisteredType(typeof(TConcrete), () =>
                 {
                     var registration =
-                        this.SelectionBasedLifestyle.CreateRegistration<TConcrete, TConcrete>(this);
+                        this.SelectionBasedLifestyle.CreateRegistration<TConcrete>(this);
 
                     return BuildInstanceProducerForConcreteUnregisteredType(typeof(TConcrete), registration);
                 });
@@ -608,7 +582,7 @@ namespace SimpleInjector
 
             return this.GetOrBuildInstanceProducerForConcreteUnregisteredType(type, () =>
             {
-                var registration = this.SelectionBasedLifestyle.CreateRegistration(type, type, this);
+                var registration = this.SelectionBasedLifestyle.CreateRegistration(type, this);
 
                 return BuildInstanceProducerForConcreteUnregisteredType(type, registration);
             });
@@ -675,7 +649,7 @@ namespace SimpleInjector
             // Prevent the compiler, JIT, and processor to reorder these statements to prevent the instance
             // producer from being added after the snapshot has been made accessible to other threads.
             // This is important on architectures with a weak memory model (such as ARM).
-#if NETSTANDARD
+#if NETSTANDARD1_0 || NETSTANDARD1_3
             Interlocked.MemoryBarrier();
 #else
             Thread.MemoryBarrier();

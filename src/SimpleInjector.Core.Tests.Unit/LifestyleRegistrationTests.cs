@@ -261,11 +261,9 @@
 
         public Registration RegistrationToReturn { get; set; }
 
-        // Wha evaaahhh
-        protected override int Length => 1;
+        public override int Length => Transient.Length;
 
-        protected override Registration CreateRegistrationCore<TService, TImplementation>(
-            Container container)
+        protected override Registration CreateRegistrationCore<TConcrete>(Container container)
         {
             return this.RegistrationToReturn;
         }
@@ -279,18 +277,16 @@
 
     internal sealed class FakeRegistration : Registration
     {
-        private readonly Type implementationType;
-
         public FakeRegistration(Lifestyle lifestyle, Container container, Type implementationType) 
             : base(lifestyle, container)
         {
-            this.implementationType = implementationType;
+            this.ImplementationType = implementationType;
         }
 
-        public override Type ImplementationType => this.implementationType;
+        public override Type ImplementationType { get; }
 
         public Expression ExpressionToReturn { get; set; }
 
-        public override Expression BuildExpression() => this.ExpressionToReturn;
+        public override Expression BuildExpression(InstanceProducer producer) => this.ExpressionToReturn;
     }
 }

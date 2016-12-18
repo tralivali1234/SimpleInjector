@@ -4,7 +4,7 @@
     using System.Linq;
     using System.Linq.Expressions;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
-    using SimpleInjector.Extensions.LifetimeScoping;
+    using SimpleInjector.Lifestyles;
 
     [TestClass]
     public class HybridLifestyleTests
@@ -48,13 +48,13 @@
             var expression = registration.BuildExpression().ToString();
 
             // Assert
-            Assert.IsTrue(expression.ToString().StartsWith(
+            Assert.IsTrue(expression.StartsWith(
                 "IIF(Invoke(value(System.Func`1[System.Boolean])), Convert("),
-                "Actual: " + expression.ToString());
+                "Actual: " + expression);
 
-            Assert.IsTrue(expression.ToString().EndsWith(
+            Assert.IsTrue(expression.EndsWith(
                 "Convert(value(SimpleInjector.Tests.Unit.SqlUserRepository)))"),
-                "Actual: " + expression.ToString());
+                "Actual: " + expression);
         }
 
         [TestMethod]
@@ -96,7 +96,84 @@
             // Assert
             Assert.IsTrue(object.ReferenceEquals(provider1, provider2));
         }
-        
+
+        [TestMethod]
+        public void CreateHybrid_WithFallbackLifestyleWithoutActiveScope_UsesFallbackLifestyle()
+        {
+            // Arrange
+            var hybrid = Lifestyle.CreateHybrid(
+                defaultLifestyle: new ThreadScopedLifestyle(), 
+                fallbackLifestyle: Lifestyle.Singleton);
+
+            var container = ContainerFactory.New();
+
+            container.Register<IUserRepository, SqlUserRepository>(hybrid);
+
+            // Act
+            var provider1 = container.GetInstance<IUserRepository>();
+            var provider2 = container.GetInstance<IUserRepository>();
+
+            // Assert
+            Assert.AreSame(provider1, provider2);
+        }
+
+        [TestMethod]
+        public void CreateHybrid_WithFallbackLifestyleWithActiveScope_UsesDefaultScopedLifestyle()
+        {
+            // Arrange
+            var hybrid = Lifestyle.CreateHybrid(
+                defaultLifestyle: new ThreadScopedLifestyle(), 
+                fallbackLifestyle: Lifestyle.Singleton);
+
+            var container = ContainerFactory.New();
+
+            container.Register<IUserRepository, SqlUserRepository>(hybrid);
+
+            IUserRepository provider1;
+            IUserRepository provider2;
+
+            // Act
+            using (ThreadScopedLifestyle.BeginScope(container))
+            {
+                provider1 = container.GetInstance<IUserRepository>();
+            }
+
+            using (ThreadScopedLifestyle.BeginScope(container))
+            {
+                provider2 = container.GetInstance<IUserRepository>();
+            }
+
+            // Assert
+            Assert.AreNotSame(provider1, provider2);
+        }
+
+        [TestMethod]
+        public void CreateHybrid_TwoScopedLifestyles_ResolvesFromBothLifestyles()
+        {
+            // Arrange
+            var scope = new Scope();
+
+            var container = new Container();
+
+            container.Options.DefaultScopedLifestyle = Lifestyle.CreateHybrid(
+                defaultLifestyle: new ThreadScopedLifestyle(),
+                fallbackLifestyle: new CustomScopedLifestyle(scope));
+
+            container.Register<IUserRepository, SqlUserRepository>(Lifestyle.Scoped);
+
+            // Act
+            IUserRepository repo1 = container.GetInstance<IUserRepository>();
+            IUserRepository repo2 = null;
+
+            using (ThreadScopedLifestyle.BeginScope(container))
+            {
+                repo2 = container.GetInstance<IUserRepository>();
+            }
+
+            // Assert
+            Assert.AreNotSame(repo1, repo2);
+        }
+
         [TestMethod]
         public void GetInstance_Always_CallsTheDelegate()
         {
@@ -248,7 +325,7 @@
 
             // Act
             var registration =
-                expectedLifestyle.CreateRegistration<IUserRepository, SqlUserRepository>(container);
+                expectedLifestyle.CreateRegistration<SqlUserRepository>(container);
 
             // Assert
             Assert.AreEqual(expectedLifestyle, registration.Lifestyle);
@@ -265,7 +342,7 @@
 
             // Act
             var registration =
-                expectedLifestyle.CreateRegistration<IUserRepository, SqlUserRepository>(container);
+                expectedLifestyle.CreateRegistration<SqlUserRepository>(container);
 
             // Assert
             Assert.AreEqual(expectedLifestyle, registration.Lifestyle);
@@ -606,15 +683,15 @@
                 return base.GetCurrentScopeCore(container);
             }
 
-            protected override Registration CreateRegistrationCore<TService, TImplementation>(Container container)
+            protected override Registration CreateRegistrationCore<TConcrete>(Container container)
             {
-                return this.realLifestyle.CreateRegistration<TService, TImplementation>(container);
+                return this.realLifestyle.CreateRegistration<TConcrete>(container);
             }
 
             protected override Registration CreateRegistrationCore<TService>(Func<TService> instanceCreator,
                 Container container)
             {
-                return this.realLifestyle.CreateRegistration<TService>(instanceCreator, container);
+                return this.realLifestyle.CreateRegistration(instanceCreator, container);
             }
         }
     }

@@ -402,7 +402,7 @@
 
             public override Type ImplementationType => typeof(TImplementation);
 
-            public override Expression BuildExpression()
+            public override Expression BuildExpression(InstanceProducer producer)
             {
                 throw new NotImplementedException();
             }
@@ -440,34 +440,32 @@
                 throw new NotImplementedException();
             }
 
-            protected override int Length => this.realLifestyle.ComponentLength(null);
+            public override int Length => this.realLifestyle.ComponentLength(null);
 
-            protected override Registration CreateRegistrationCore<TService, TImplementation>(Container container)
+            protected override Registration CreateRegistrationCore<TConcrete>(Container container)
             {
-                return this.realLifestyle.CreateRegistration<TService, TImplementation>(container);
+                return this.realLifestyle.CreateRegistration<TConcrete>(container);
             }
 
             protected override Registration CreateRegistrationCore<TService>(Func<TService> instanceCreator, 
                 Container container)
             {
-                return this.realLifestyle.CreateRegistration<TService>(instanceCreator, container);
+                return this.realLifestyle.CreateRegistration(instanceCreator, container);
             }
         }
     }
     
     internal class FakeLifestyle : Lifestyle
     {
-        private readonly int length;
-
         public FakeLifestyle(string name, int length) : base("Fake " + name)
         {
-            this.length = length;
+            this.Length = length;
         }
 
-        protected override int Length => this.length;
+        public override int Length { get; }
 
-        protected override Registration CreateRegistrationCore<TService, TImplementation>(Container c) => 
-            Transient.CreateRegistration<TService, TImplementation>(c);
+        protected override Registration CreateRegistrationCore<TConcrete>(Container c) => 
+            Transient.CreateRegistration<TConcrete>(c);
 
         protected override Registration CreateRegistrationCore<TService>(Func<TService> creator, Container c) => 
             Transient.CreateRegistration(creator, c);

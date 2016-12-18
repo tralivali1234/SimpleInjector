@@ -525,13 +525,12 @@ namespace SimpleInjector.Tests.Unit
 
             var container = ContainerFactory.New();
 
-            container.Options.ResolveUnregisteredCollections = true;
-
             container.ResolveUnregisteredType += (s, e) =>
             {
                 if (e.UnregisteredServiceType == typeof(IEnumerable<Exception>))
                 {
                     resolveUnregisteredTypeWasTriggered = true;
+                    e.Register(() => Enumerable.Empty<Exception>());
                 }
             };
 
@@ -550,18 +549,18 @@ namespace SimpleInjector.Tests.Unit
 
             var container = ContainerFactory.New();
 
-            container.Options.ResolveUnregisteredCollections = true;
-
             container.ResolveUnregisteredType += (s, e) =>
             {
                 if (e.UnregisteredServiceType == typeof(IEnumerable<Exception>))
                 {
                     resolveUnregisteredTypeWasTriggered = true;
+
+                    e.Register(() => Enumerable.Empty<Exception>());
                 }
             };
 
             // Act
-            container.GetInstance<Wrapper<Exception>>();
+            container.GetInstance<ServiceDependingOn<IEnumerable<Exception>>>();
 
             // Assert
             Assert.IsTrue(resolveUnregisteredTypeWasTriggered);
@@ -593,7 +592,7 @@ namespace SimpleInjector.Tests.Unit
             container.Register<ComponentDependingOn<IUserRepository>>();
             container.RegisterSingleton<ServiceDependingOn<IUserRepository>>();
 
-            var r = Lifestyle.Singleton.CreateRegistration<IUserRepository, SqlUserRepository>(container);
+            var r = Lifestyle.Singleton.CreateRegistration<SqlUserRepository>(container);
 
             container.ResolveUnregisteredType += (s, e) =>
             {

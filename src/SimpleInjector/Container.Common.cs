@@ -30,7 +30,6 @@ namespace SimpleInjector
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Linq.Expressions;
-    using System.Reflection;
     using System.Threading;
     using SimpleInjector.Advanced;
     using SimpleInjector.Diagnostics;
@@ -389,7 +388,7 @@ namespace SimpleInjector
         }
 
         /// <summary>Prevents any new registrations to be made to the container.</summary>
-#if NET45 || NETSTANDARD
+#if !NET40
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
         internal void LockContainer()
@@ -402,7 +401,7 @@ namespace SimpleInjector
             }
         }
 
-#if NET45 || NETSTANDARD
+#if !NET40
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
         internal void ThrowWhenDisposed()

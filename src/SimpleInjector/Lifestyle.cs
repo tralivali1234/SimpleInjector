@@ -23,6 +23,7 @@
 namespace SimpleInjector
 {
     using System;
+    using System.ComponentModel;
     using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq.Expressions;
@@ -137,8 +138,8 @@ namespace SimpleInjector
         internal static readonly Lifestyle Unknown = new UnknownLifestyle();
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private static readonly MethodInfo OpenCreateRegistrationTServiceTImplementationMethod =
-            GetMethod(lifestyle => lifestyle.CreateRegistration<object, object>(null));
+        private static readonly MethodInfo OpenCreateRegistrationTConcreteMethod =
+            GetMethod(lifestyle => lifestyle.CreateRegistration<object>(null));
 
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private static readonly MethodInfo OpenCreateRegistrationTServiceFuncMethod =
@@ -165,7 +166,125 @@ namespace SimpleInjector
         /// misconfigurations.
         /// </summary>
         /// <value>The <see cref="int"/> representing the length of this lifestyle.</value>
-        protected abstract int Length { get; }
+        public abstract int Length { get; }
+
+        /// <summary>
+        /// The hybrid lifestyle allows mixing two lifestyles in a single registration. The hybrid will use
+        /// the <paramref name="defaultLifestyle"/> in case its 
+        /// <see cref="ScopedLifestyle.GetCurrentScope(Container)">GetCurrentScope</see> method returns a
+        /// scope; otherwise the <paramref name="fallbackLifestyle"/> is used. The hybrid lifestyle will 
+        /// redirect the creation of the instance to the selected lifestyle. By nesting hybrid lifestyles, 
+        /// any number of lifestyles can be mixed.
+        /// </summary>
+        /// <param name="defaultLifestyle">The lifestyle to use when its 
+        /// <see cref="ScopedLifestyle.GetCurrentScope(Container)">GetCurrentScope</see> method returns a
+        /// scope..</param>
+        /// <param name="fallbackLifestyle">The lifestyle to use when the
+        ///  <see cref="ScopedLifestyle.GetCurrentScope(Container)">GetCurrentScope</see> method of the
+        /// <paramref name="defaultLifestyle"/> argument returns <b>null</b>.</param>
+        /// <returns>A new hybrid lifestyle that wraps the supplied lifestyles.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when one of the supplied arguments is a null
+        /// reference (Nothing in VB).</exception>
+        /// <example>
+        /// <para>
+        /// The following example shows the creation of a <b>HybridLifestyle</b> that mixes an 
+        /// <b>ThreadScopedLifestyle</b> and <b>Transient</b>:
+        /// </para>
+        /// <code lang="cs"><![CDATA[
+        /// // NOTE: WebRequestLifestyle is located in SimpleInjector.Integration.Web.dll.
+        /// var hybridLifestyle = Lifestyle.CreateHybrid(
+        ///     defaultLifestyle: new ThreadScopedLifestyle(),
+        ///     fallbackLifestyle: Lifestyle.Transient);
+        /// 
+        /// // The created lifestyle can be reused for many registrations.
+        /// container.Register<IUserRepository, SqlUserRepository>(hybridLifestyle);
+        /// container.Register<ICustomerRepository, SqlCustomerRepository>(hybridLifestyle);
+        /// ]]></code>
+        /// <para>
+        /// Hybrid lifestyles can be nested:
+        /// </para>
+        /// <code lang="cs"><![CDATA[
+        /// var mixedThreadScopedTransientLifestyle = Lifestyle.CreateHybrid(
+        ///     new ThreadScopedLifestyle(),
+        ///     Lifestyle.Transient);
+        /// 
+        /// var hybridLifestyle = Lifestyle.CreateHybrid(
+        ///     new WebRequestLifestyle(),
+        ///     mixedThreadScopedTransientLifestyle);
+        /// ]]></code>
+        /// <para>
+        /// The <b>mixedScopeLifestyle</b> now mixed three lifestyles: Web Request, Thread Scoped and 
+        /// Transient.
+        /// </para>
+        /// </example>
+        public static Lifestyle CreateHybrid(ScopedLifestyle defaultLifestyle, Lifestyle fallbackLifestyle)
+        {
+            Requires.IsNotNull(defaultLifestyle, nameof(defaultLifestyle));
+            Requires.IsNotNull(fallbackLifestyle, nameof(fallbackLifestyle));
+
+            return new HybridLifestyle(
+                lifestyleSelector: container => defaultLifestyle.GetCurrentScope(container) != null,
+                trueLifestyle: defaultLifestyle,
+                falseLifestyle: fallbackLifestyle);
+        }
+
+        /// <summary>
+        /// The hybrid lifestyle allows mixing two lifestyles in a single registration. The hybrid will use
+        /// the <paramref name="defaultLifestyle"/> in case its 
+        /// <see cref="ScopedLifestyle.GetCurrentScope(Container)">GetCurrentScope</see> method returns a
+        /// scope; otherwise the <paramref name="fallbackLifestyle"/> is used. The hybrid lifestyle will 
+        /// redirect the creation of the instance to the selected lifestyle. By nesting hybrid lifestyles, 
+        /// any number of lifestyles can be mixed.
+        /// </summary>
+        /// <param name="defaultLifestyle">The lifestyle to use when its 
+        /// <see cref="ScopedLifestyle.GetCurrentScope(Container)">GetCurrentScope</see> method returns a
+        /// scope..</param>
+        /// <param name="fallbackLifestyle">The lifestyle to use when the
+        ///  <see cref="ScopedLifestyle.GetCurrentScope(Container)">GetCurrentScope</see> method of the
+        /// <paramref name="defaultLifestyle"/> argument returns <b>null</b>.</param>
+        /// <returns>A new hybrid lifestyle that wraps the supplied lifestyles.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when one of the supplied arguments is a null
+        /// reference (Nothing in VB).</exception>
+        /// <example>
+        /// <para>
+        /// The following example shows the creation of a <b>HybridLifestyle</b> that mixes an 
+        /// <b>ThreadScopedLifestyle</b> and <b>Transient</b>:
+        /// </para>
+        /// <code lang="cs"><![CDATA[
+        /// // NOTE: WebRequestLifestyle is located in SimpleInjector.Integration.Web.dll.
+        /// ScopedLifestyle hybridLifestyle = Lifestyle.CreateHybrid(
+        ///     defaultLifestyle: new ThreadScopedLifestyle(),
+        ///     fallbackLifestyle: new WebRequestLifestyle());
+        /// 
+        /// // The created lifestyle can be reused for many registrations.
+        /// container.Register<IUserRepository, SqlUserRepository>(hybridLifestyle);
+        /// container.Register<ICustomerRepository, SqlCustomerRepository>(hybridLifestyle);
+        /// ]]></code>
+        /// <para>
+        /// Hybrid lifestyles can be nested:
+        /// </para>
+        /// <code lang="cs"><![CDATA[
+        /// ScopedLifestyle hybridLifestyle = Lifestyle.CreateHybrid(
+        ///     defaultLifestyle: new ThreadScopedLifestyle(),
+        ///     fallbackLifestyle: new WebRequestLifestyle());
+        /// 
+        /// var hybridLifestyle = Lifestyle.CreateHybrid(hybridLifestyle, Lifestyle.Transient);
+        /// ]]></code>
+        /// <para>
+        /// The <b>mixedScopeLifestyle</b> now mixed three lifestyles: Web Request, Thread Scoped and 
+        /// Transient.
+        /// </para>
+        /// </example>
+        public static ScopedLifestyle CreateHybrid(ScopedLifestyle defaultLifestyle, ScopedLifestyle fallbackLifestyle)
+        {
+            Requires.IsNotNull(defaultLifestyle, nameof(defaultLifestyle));
+            Requires.IsNotNull(fallbackLifestyle, nameof(fallbackLifestyle));
+
+            return new ScopedHybridLifestyle(
+                lifestyleSelector: container => defaultLifestyle.GetCurrentScope(container) != null,
+                trueLifestyle: defaultLifestyle,
+                falseLifestyle: fallbackLifestyle);
+        }
 
         /// <summary>
         /// The hybrid lifestyle allows mixing two lifestyles in a single registration. Based on the supplied
@@ -188,15 +307,14 @@ namespace SimpleInjector
         /// <example>
         /// <para>
         /// The following example shows the creation of a <b>HybridLifestyle</b> that mixes an 
-        /// <b>WebRequestLifestyle</b> and <b>LifetimeScopeLifestyle</b>:
+        /// <b>WebRequestLifestyle</b> and <b>ThreadScopedLifestyle</b>:
         /// </para>
         /// <code lang="cs"><![CDATA[
         /// // NOTE: WebRequestLifestyle is located in SimpleInjector.Integration.Web.dll.
-        /// // NOTE: LifetimeScopeLifestyle is located in SimpleInjector.Extensions.LifetimeScoping.dll.
         /// var mixedScopeLifestyle = Lifestyle.CreateHybrid(
         ///     () => HttpContext.Current != null,
         ///     new WebRequestLifestyle(),
-        ///     new LifetimeScopeLifestyle());
+        ///     new ThreadScopedLifestyle());
         /// 
         /// // The created lifestyle can be reused for many registrations.
         /// container.Register<IUserRepository, SqlUserRepository>(mixedScopeLifestyle);
@@ -206,9 +324,10 @@ namespace SimpleInjector
         /// Hybrid lifestyles can be nested:
         /// </para>
         /// <code lang="cs"><![CDATA[
+        /// var lifestyle = new ThreadScopedLifestyle();
         /// var mixedLifetimeTransientLifestyle = Lifestyle.CreateHybrid(
-        ///     () => container.GetCurrentLifetimeScope() != null,
-        ///     new LifetimeScopeLifestyle(),
+        ///     () => lifestyle.GetCurrentScope(container) != null,
+        ///     lifestyle,
         ///     Lifestyle.Transient);
         /// 
         /// var mixedScopeLifestyle = Lifestyle.CreateHybrid(
@@ -228,7 +347,7 @@ namespace SimpleInjector
             Requires.IsNotNull(trueLifestyle, nameof(trueLifestyle));
             Requires.IsNotNull(falseLifestyle, nameof(falseLifestyle));
 
-            return new HybridLifestyle(lifestyleSelector, trueLifestyle, falseLifestyle);
+            return new HybridLifestyle(c => lifestyleSelector(), trueLifestyle, falseLifestyle);
         }
 
         /// <summary>
@@ -252,15 +371,14 @@ namespace SimpleInjector
         /// <example>
         /// <para>
         /// The following example shows the creation of a <b>HybridLifestyle</b> that mixes an 
-        /// <b>WebRequestLifestyle</b> and <b>LifetimeScopeLifestyle</b>:
+        /// <b>WebRequestLifestyle</b> and <b>ThreadScopedLifestyle</b>:
         /// </para>
         /// <code lang="cs"><![CDATA[
         /// // NOTE: WebRequestLifestyle is located in SimpleInjector.Integration.Web.dll.
-        /// // NOTE: LifetimeScopeLifestyle is located in SimpleInjector.Extensions.LifetimeScoping.dll.
         /// var mixedScopeLifestyle = Lifestyle.CreateHybrid(
         ///     () => HttpContext.Current != null,
         ///     new WebRequestLifestyle(),
-        ///     new LifetimeScopeLifestyle());
+        ///     new ThreadScopedLifestyle());
         /// 
         /// // The created lifestyle can be reused for many registrations.
         /// container.Register<IUserRepository, SqlUserRepository>(mixedScopeLifestyle);
@@ -274,7 +392,7 @@ namespace SimpleInjector
             Requires.IsNotNull(trueLifestyle, nameof(trueLifestyle));
             Requires.IsNotNull(falseLifestyle, nameof(falseLifestyle));
 
-            return new ScopedHybridLifestyle(lifestyleSelector, trueLifestyle, falseLifestyle);
+            return new ScopedHybridLifestyle(c => lifestyleSelector(), trueLifestyle, falseLifestyle);
         }
 
         /// <summary>
@@ -363,7 +481,7 @@ namespace SimpleInjector
             where TImplementation : class, TService
             where TService : class
         {
-            return new InstanceProducer<TService>(this.CreateRegistration<TService, TImplementation>(container));
+            return new InstanceProducer<TService>(this.CreateRegistration<TImplementation>(container));
         }
 
         /// <summary>
@@ -381,8 +499,14 @@ namespace SimpleInjector
         public InstanceProducer<TService> CreateProducer<TService>(Type implementationType, Container container)
             where TService : class
         {
-            return new InstanceProducer<TService>(
-                this.CreateRegistration(typeof(TService), implementationType, container));
+            Requires.IsNotNull(implementationType, nameof(implementationType));
+            Requires.IsNotNull(container, nameof(container));
+
+            Requires.IsNotOpenGenericType(implementationType, nameof(implementationType));
+            Requires.ServiceIsAssignableFromImplementation(typeof(TService), implementationType,
+                nameof(implementationType));
+
+            return new InstanceProducer<TService>(this.CreateRegistration(implementationType, container));
         }
 
         /// <summary>
@@ -401,6 +525,9 @@ namespace SimpleInjector
         public InstanceProducer<TService> CreateProducer<TService>(Func<TService> instanceCreator,
             Container container) where TService : class
         {
+            Requires.IsNotNull(instanceCreator, nameof(instanceCreator));
+            Requires.IsNotNull(container, nameof(container));
+
             return new InstanceProducer<TService>(this.CreateRegistration(instanceCreator, container));
         }
 
@@ -418,8 +545,12 @@ namespace SimpleInjector
         /// reference (Nothing in VB).</exception>
         public InstanceProducer CreateProducer(Type serviceType, Type implementationType, Container container)
         {
-            return new InstanceProducer(serviceType,
-                this.CreateRegistration(serviceType, implementationType, container));
+            Requires.IsNotNull(serviceType, nameof(serviceType));
+            Requires.IsNotNull(implementationType, nameof(implementationType));
+            Requires.IsNotNull(container, nameof(container));
+            Requires.IsNotOpenGenericType(implementationType, nameof(implementationType));
+
+            return new InstanceProducer(serviceType, this.CreateRegistration(implementationType, container));
         }
 
         /// <summary>
@@ -437,12 +568,12 @@ namespace SimpleInjector
         {
             Requires.IsNotNull(container, nameof(container));
 
-            return this.CreateRegistrationCore<TConcrete, TConcrete>(container);
+            return this.CreateRegistrationCore<TConcrete>(container);
         }
 
         /// <summary>
-        /// Creates a new <see cref="Registration"/> instance defining the creation of the
-        /// specified <typeparamref name="TImplementation"/> with the caching as specified by this lifestyle.
+        /// This overload has been deprecated. Please call <see cref="CreateRegistrationCore{TConcrete}(Container)"/>
+        /// instead.
         /// </summary>
         /// <typeparam name="TService">The interface or base type that can be used to retrieve the instances.</typeparam>
         /// <typeparam name="TImplementation">The concrete type that will be created.</typeparam>
@@ -451,13 +582,14 @@ namespace SimpleInjector
         /// <returns>A new <see cref="Registration"/> instance.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="container"/> is a null
         /// reference (Nothing in VB).</exception>
+        [Obsolete("This overload has been deprecated. Please call CreateRegistration<TConcrete>(Container) instead.",
+            error: false)]
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public Registration CreateRegistration<TService, TImplementation>(Container container)
             where TImplementation : class, TService
             where TService : class
         {
-            Requires.IsNotNull(container, nameof(container));
-
-            return this.CreateRegistrationCore<TService, TImplementation>(container);
+            return this.CreateRegistration<TImplementation>(container);
         }
 
         /// <summary>
@@ -501,16 +633,29 @@ namespace SimpleInjector
         public Registration CreateRegistration(Type concreteType, Container container)
         {
             Requires.IsNotNull(concreteType, nameof(concreteType));
+            Requires.IsNotNull(container, nameof(container));
+
+            Requires.IsReferenceType(concreteType, nameof(concreteType));
+
             Requires.IsNotOpenGenericType(concreteType, nameof(concreteType));
 
-            return this.CreateRegistration(concreteType, concreteType, container);
+            var closedCreateRegistrationMethod = OpenCreateRegistrationTConcreteMethod
+                .MakeGenericMethod(concreteType);
+
+            try
+            {
+                return (Registration)closedCreateRegistrationMethod.Invoke(this, new object[] { container });
+            }
+            catch (MemberAccessException ex)
+            {
+                throw BuildUnableToResolveTypeDueToSecurityConfigException(concreteType, ex,
+                    nameof(concreteType));
+            }
         }
 
         /// <summary>
-        /// Creates a new <see cref="Registration"/> instance defining the creation of the
-        /// specified <paramref name="implementationType"/> with the caching as specified by this lifestyle.
-        /// This method might fail when run in a partial trust sandbox when <paramref name="implementationType"/>
-        /// is an internal type.
+        /// This overload has been deprecated. Please call <see cref="CreateRegistration(Type, Container)"/>
+        /// instead.
         /// </summary>
         /// <param name="serviceType">The interface or base type that can be used to retrieve the instances.</param>
         /// <param name="implementationType">The concrete type that will be registered.</param>
@@ -519,33 +664,14 @@ namespace SimpleInjector
         /// <returns>A new <see cref="Registration"/> instance.</returns>
         /// <exception cref="ArgumentNullException">Thrown when on of the supplied arguments is a null 
         /// reference (Nothing in VB).</exception>
+        [Obsolete("This overload has been deprecated. Please call CreateRegistration(Type, Container) instead.", 
+            error: false)]
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public Registration CreateRegistration(Type serviceType, Type implementationType, Container container)
         {
-            Requires.IsNotNull(serviceType, nameof(serviceType));
             Requires.IsNotNull(implementationType, nameof(implementationType));
-            Requires.IsNotNull(container, nameof(container));
 
-            Requires.IsReferenceType(serviceType, nameof(serviceType));
-            Requires.IsReferenceType(implementationType, nameof(implementationType));
-
-            Requires.IsNotOpenGenericType(serviceType, nameof(serviceType));
-            Requires.IsNotOpenGenericType(implementationType, nameof(implementationType));
-
-            Requires.ServiceIsAssignableFromImplementation(serviceType, implementationType,
-                nameof(implementationType));
-
-            var closedCreateRegistrationMethod = OpenCreateRegistrationTServiceTImplementationMethod
-                .MakeGenericMethod(serviceType, implementationType);
-
-            try
-            {
-                return (Registration)closedCreateRegistrationMethod.Invoke(this, new object[] { container });
-            }
-            catch (MemberAccessException ex)
-            {
-                throw BuildUnableToResolveTypeDueToSecurityConfigException(implementationType, ex,
-                    nameof(implementationType));
-            }
+            return this.CreateRegistration(implementationType, container);
         }
 
         /// <summary>
@@ -591,10 +717,10 @@ namespace SimpleInjector
 
         internal virtual int DependencyLength(Container container) => this.Length;
 
-        internal Registration CreateRegistration(Type serviceType, Type implementationType,
-            Container container, params OverriddenParameter[] overriddenParameters)
+        internal Registration CreateRegistration(Type concreteType, Container container, 
+            params OverriddenParameter[] overriddenParameters)
         {
-            var registration = this.CreateRegistration(serviceType, implementationType, container);
+            var registration = this.CreateRegistration(concreteType, container);
 
             registration.SetParameterOverrides(overriddenParameters);
 
@@ -604,10 +730,9 @@ namespace SimpleInjector
         /// <summary>
         /// When overridden in a derived class, 
         /// creates a new <see cref="Registration"/> instance defining the creation of the
-        /// specified <typeparamref name="TImplementation"/> with the caching as specified by this lifestyle.
+        /// specified <typeparamref name="TConcrete"/> with the caching as specified by this lifestyle.
         /// </summary>
-        /// <typeparam name="TService">The interface or base type that can be used to retrieve the instances.</typeparam>
-        /// <typeparam name="TImplementation">The concrete type that will be registered.</typeparam>
+        /// <typeparam name="TConcrete">The concrete type that will be registered.</typeparam>
         /// <param name="container">The <see cref="Container"/> instance for which a 
         /// <see cref="Registration"/> must be created.</param>
         /// <returns>A new <see cref="Registration"/> instance.</returns>
@@ -616,9 +741,8 @@ namespace SimpleInjector
         /// to create and return a new <see cref="Registration"/>. Note that you should <b>always</b> create
         /// a new <see cref="Registration"/> instance. They should never be cached.
         /// </remarks>
-        protected abstract Registration CreateRegistrationCore<TService, TImplementation>(Container container)
-            where TImplementation : class, TService
-            where TService : class;
+        protected abstract Registration CreateRegistrationCore<TConcrete>(Container container)
+            where TConcrete : class;
 
         /// <summary>
         /// When overridden in a derived class, 

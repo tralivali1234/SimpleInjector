@@ -5,7 +5,6 @@
     using System.Linq;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
     using SimpleInjector.Advanced;
-    using SimpleInjector.Extensions;
 
     [TestClass]
     public class InstanceProducerTests
@@ -85,7 +84,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            var registration = Lifestyle.Transient.CreateRegistration<OneAndTwo, OneAndTwo>(container);
+            var registration = Lifestyle.Transient.CreateRegistration<OneAndTwo>(container);
 
             container.AddRegistration(typeof(IOne), registration);
             container.AddRegistration(typeof(ITwo), registration);
