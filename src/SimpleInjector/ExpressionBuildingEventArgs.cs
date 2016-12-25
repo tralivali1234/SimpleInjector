@@ -24,6 +24,7 @@ namespace SimpleInjector
 {
     using System;
     using System.Collections.ObjectModel;
+    using System.ComponentModel;
     using System.Diagnostics;
     using System.Linq.Expressions;
     using SimpleInjector.Advanced;
@@ -36,16 +37,14 @@ namespace SimpleInjector
     /// currently being built.
     /// </summary>
     [DebuggerDisplay(nameof(ExpressionBuildingEventArgs) + " (" + 
-        nameof(RegisteredServiceType) + ": {SimpleInjector.Helpers.ToFriendlyName(" + nameof(RegisteredServiceType) + "), nq}, " +
+        nameof(KnownImplementationType) + ": {SimpleInjector.Helpers.ToFriendlyName(" + nameof(KnownImplementationType) + "), nq}, " +
         nameof(Expression) + ": {" + nameof(Expression) + "})")]
     public class ExpressionBuildingEventArgs : EventArgs
     {
         private Expression expression;
 
-        internal ExpressionBuildingEventArgs(Type registeredServiceType, Type knownImplementationType, 
-            Expression expression, Lifestyle lifestyle)
+        internal ExpressionBuildingEventArgs(Type knownImplementationType, Expression expression, Lifestyle lifestyle)
         {
-            this.RegisteredServiceType = registeredServiceType;
             this.KnownImplementationType = knownImplementationType;
             this.Lifestyle = lifestyle;
 
@@ -54,6 +53,11 @@ namespace SimpleInjector
 
         /// <summary>Gets the registered service type that is currently requested.</summary>
         /// <value>The registered service type that is currently requested.</value>
+        [Obsolete(
+            "This property has been removed. Please use KnownImplementationType instead. " +
+            "See https://simpleinjector.org/depr3.",
+            error: true)]
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public Type RegisteredServiceType { get; }
 
         /// <summary>
