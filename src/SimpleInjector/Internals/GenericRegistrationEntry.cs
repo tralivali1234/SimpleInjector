@@ -292,8 +292,7 @@ namespace SimpleInjector.Internals
                     : null;
 
             private bool MatchesPredicate(InjectionConsumerInfo consumer, bool handled) =>
-                this.producer.Predicate(
-                    new PredicateContext(this.producer.ImplementationType, consumer, handled));
+                this.producer.Predicate(new PredicateContext(this.producer, consumer, handled));
         }
 
         private sealed class OpenGenericToInstanceProducerProvider : IProducerProvider
@@ -351,12 +350,11 @@ namespace SimpleInjector.Internals
 
             public bool OverlapsWith(InstanceProducer producerToCheck) =>
                 this.IsConditional || this.ImplementationType == null
-                    ? false // Conditionals never overlap during registration.
+                    ? false // Conditionals never overlap compile time.
                     : GenericTypeBuilder.IsImplementationApplicableToEveryGenericType(
                         producerToCheck.ServiceType,
                         this.ImplementationType);
 
-            // TODO: This method needs some refactoring
             public InstanceProducer TryGetProducer(Type serviceType, InjectionConsumerInfo consumer,
                 bool handled)
             {
@@ -368,17 +366,17 @@ namespace SimpleInjector.Internals
                     ? closedImplementation
                     : this.GetImplementationTypeThroughFactory(serviceType, consumer);
 
-                var context = new PredicateContext(implementationTypeProvider, consumer, handled);
+                var context = new PredicateContext(serviceType, implementationTypeProvider, consumer, handled);
 
                 // NOTE: The producer should only get built after it matches the delegate, to prevent
                 // unneeded producers from being created, because this might cause diagnostic warnings, 
                 // such as torn lifestyle warnings.
-                bool shouldBuildProducer =
+                var shouldBuildProducer =
                     (this.ImplementationType == null || closedImplementation != null)
                     && this.MatchesPredicate(context)
                     && context.ImplementationType != null;
 
-                return shouldBuildProducer ? this.GetProducer(serviceType, context) : null;
+                return shouldBuildProducer ? this.GetProducer(context) : null;
             }
 
             public bool MatchesServiceType(Type serviceType) =>
@@ -411,30 +409,30 @@ namespace SimpleInjector.Internals
                 return implementationType;
             }
 
-            private InstanceProducer GetProducer(Type closedServiceType, PredicateContext context)
+            private InstanceProducer GetProducer(PredicateContext context)
             {
                 InstanceProducer producer;
 
                 // Never build a producer twice. This could cause components with a torn lifestyle.
                 lock (this.cache)
                 {
-                    // Use both the service and implementation type as key. Using just the service type could
-                    // case multiple consumers to accidentally get the same implementation type.
-                    // Using only the implementation type, would break when one implementation type could be
+                    // Use both the service and implementation type as key. Using just the service type would
+                    // case multiple consumers to accidentally get the same implementation type, which
+                    // using only the implementation type, would break when one implementation type could be
                     // used for multiple services (implements multiple closed interfaces).
-                    var key = new { closedServiceType, context.ImplementationType };
+                    var key = new { context.ServiceType, context.ImplementationType };
 
                     if (!this.cache.TryGetValue(key, out producer))
                     {
-                        this.cache[key] = producer = this.CreateNewProducerFor(closedServiceType, context);
+                        this.cache[key] = producer = this.CreateNewProducerFor(context);
                     }
                 }
 
                 return producer;
             }
 
-            private InstanceProducer CreateNewProducerFor(Type closedServiceType, PredicateContext context) =>
-                new InstanceProducer(closedServiceType, this.GetRegistration(context), this.Predicate);
+            private InstanceProducer CreateNewProducerFor(PredicateContext context) =>
+                new InstanceProducer(context.ServiceType, this.GetRegistration(context), this.Predicate);
 
             private Registration GetRegistration(PredicateContext context)
             {

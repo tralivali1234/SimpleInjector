@@ -25,6 +25,7 @@ namespace SimpleInjector.Internals
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
 
     internal sealed class NonGenericRegistrationEntry : IRegistrationEntry
     {
@@ -223,7 +224,7 @@ namespace SimpleInjector.Internals
             public IEnumerable<InstanceProducer> CurrentProducers => Enumerable.Repeat(this.producer, 1);
 
             public InstanceProducer TryGetProducer(InjectionConsumerInfo consumer, bool handled) =>
-                this.producer.Predicate(new PredicateContext(this.producer.ImplementationType, consumer, handled))
+                this.producer.Predicate(new PredicateContext(this.producer, consumer, handled))
                     ? this.producer
                     : null;
         }
@@ -264,7 +265,8 @@ namespace SimpleInjector.Internals
                 Func<Type> implementationTypeProvider = 
                     () => this.GetImplementationTypeThroughFactory(consumer);
 
-                var context = new PredicateContext(implementationTypeProvider, consumer, handled);
+                var context = 
+                    new PredicateContext(this.serviceType, implementationTypeProvider, consumer, handled);
 
                 // NOTE: The producer should only get built after it matches the delegate, to prevent
                 // unneeded producers from being created, because this might cause diagnostic warnings, 
