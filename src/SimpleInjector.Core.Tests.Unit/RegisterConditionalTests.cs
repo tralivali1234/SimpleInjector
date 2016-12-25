@@ -526,9 +526,6 @@
             var container = ContainerFactory.New();
 
             container.RegisterConditional(typeof(ILogger), typeof(NullLogger), Lifestyle.Singleton,
-                c => c.ServiceType == typeof(ServiceWithDependency<ILogger>));
-
-            container.RegisterConditional(typeof(ILogger), typeof(NullLogger), Lifestyle.Singleton,
                 c => c.Consumer.ServiceType == typeof(ServiceWithDependency<ILogger>));
 
             // Fallback registration
