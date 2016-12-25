@@ -22,12 +22,12 @@
 
 namespace SimpleInjector
 {
+    // NOTE: Although 'TypeExtensions' would be a more obvious name, there is already such type in .NET.
+    // Using that same name would easily cause conflicts.
     using System;
     using System.Collections.Generic;
     using System.Linq;
 
-    // NOTE: Although 'TypeExtensions' would be a more obvious name, there is already such type in .NET.
-    // Using that same name would easily cause conflicts.
     /// <summary>Useful extensions on <see cref="Type"/>.</summary>
     public static class TypesExtensions
     {

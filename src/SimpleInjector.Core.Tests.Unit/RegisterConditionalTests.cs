@@ -79,35 +79,17 @@
             var container = ContainerFactory.New();
 
             container.RegisterConditional(typeof(IOpenGenericWithPredicate<>), typeof(OpenGenericWithPredicate1<>),
-                Lifestyle.Transient, c => c.ServiceType.GetGenericArguments().Single().GetType() == typeof(int));
+                Lifestyle.Transient, c => c.ImplementationType
+                    .GetClosedTypeOf(typeof(IOpenGenericWithPredicate<>))
+                    .GetGenericArguments().Single().GetType() == typeof(int));
 
             container.RegisterConditional(typeof(IOpenGenericWithPredicate<>), typeof(OpenGenericWithPredicate2<>),
-                Lifestyle.Transient, c => c.ServiceType.GetGenericArguments().Single().GetType() == typeof(long));
+                Lifestyle.Transient, c => c.ImplementationType
+                    .GetClosedTypeOf(typeof(IOpenGenericWithPredicate<>))
+                    .GetGenericArguments().Single().GetType() == typeof(long));
 
             // Act
             container.Verify();
-        }
-
-        [TestMethod]
-        public void RegisterOpenGeneric_PredicateContext_ServiceTypeIsClosedImplentation()
-        {
-            // Arrange
-            Type actualServiceType = null;
-
-            var container = ContainerFactory.New();
-            container.RegisterConditional(typeof(IOpenGenericWithPredicate<>), typeof(OpenGenericWithPredicate1<>),
-                Lifestyle.Transient, c =>
-                {
-                    actualServiceType = c.ServiceType;
-                    return true;
-                });
-
-            // Act
-            var result = container.GetInstance<IOpenGenericWithPredicate<int>>();
-
-            // Assert
-            Assert.IsNotNull(actualServiceType, "Predicate was not called");
-            Assert.IsFalse(actualServiceType.ContainsGenericParameter(), "ServiceType should be a closed type");
         }
 
         [TestMethod]
@@ -914,30 +896,6 @@
             Assert.AreSame(a.Dependency, b.Dependency,
                 "Since both dependencies are IntAndFloatGeneric<object> and it is registered as singleton " +
                 ", there should only be one single instance.");
-        }
-
-        [TestMethod]
-        public void RegisterConditionalFactory_PredicateContext_ServiceTypeIsClosedImplentation()
-        {
-            // Arrange
-            Type actualServiceType = null;
-
-            var container = ContainerFactory.New();
-            container.RegisterConditional(
-                typeof(IOpenGenericWithPredicate<>),
-                c => typeof(OpenGenericWithPredicate1<>),
-                Lifestyle.Transient, c =>
-                {
-                    actualServiceType = c.ServiceType;
-                    return true;
-                });
-
-            // Act
-            var result = container.GetInstance<IOpenGenericWithPredicate<int>>();
-
-            // Assert
-            Assert.IsNotNull(actualServiceType, "Predicate was not called");
-            Assert.IsFalse(actualServiceType.ContainsGenericParameter(), "ServiceType should be a closed type");
         }
 
         [TestMethod]

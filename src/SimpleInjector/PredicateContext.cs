@@ -46,24 +46,15 @@ namespace SimpleInjector
         private readonly Func<Type> implementationTypeProvider;
         private Type implementationType;
 
-        internal PredicateContext(InstanceProducer producer, InjectionConsumerInfo consumer, bool handled)
-            : this(producer.ServiceType, producer.Registration.ImplementationType, consumer, handled)
+        internal PredicateContext(Type implementationType, InjectionConsumerInfo consumer, bool handled)
         {
-        }
-
-        internal PredicateContext(Type serviceType, Type implementationType, InjectionConsumerInfo consumer,
-            bool handled)
-        {
-            this.ServiceType = serviceType;
             this.implementationType = implementationType;
             this.Consumer = consumer;
             this.Handled = handled;
         }
 
-        internal PredicateContext(Type serviceType, Func<Type> implementationTypeProvider,
-            InjectionConsumerInfo consumer, bool handled)
+        internal PredicateContext(Func<Type> implementationTypeProvider, InjectionConsumerInfo consumer, bool handled)
         {
-            this.ServiceType = serviceType;
             this.implementationTypeProvider = implementationTypeProvider;
             this.Consumer = consumer;
             this.Handled = handled;
@@ -71,7 +62,19 @@ namespace SimpleInjector
 
         /// <summary>Gets the closed generic service type that is to be created.</summary>
         /// <value>The closed generic service type.</value>
-        public Type ServiceType { get; }
+        [Obsolete(
+            "This property has been removed. Please use ImplementationType instead. " +
+            "See https://simpleinjector.org/depr3.",
+            error: true)]
+        public Type ServiceType
+        {
+            get
+            {
+                throw new NotSupportedException(
+                    "This property has been removed. Please use ImplementationType instead. " +
+                    "See https://simpleinjector.org/depr3.");
+            }
+        }
 
         /// <summary>Gets the closed generic implementation type that will be created by the container.</summary>
         /// <value>The implementation type.</value>
@@ -104,8 +107,7 @@ namespace SimpleInjector
             Justification = "This method is called by the debugger.")]
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         internal string DebuggerDisplay => string.Format(CultureInfo.InvariantCulture,
-            "{0}: {1}, {2}: {3}, {4}: {5}, {6}: {7}",
-            nameof(this.ServiceType), this.ServiceType.ToFriendlyName(),
+            "{0}: {1}, {2}: {3}, {4}: {5}",
             nameof(this.ImplementationType), this.ImplementationType.ToFriendlyName(),
             nameof(this.Handled), this.Handled,
             nameof(this.Consumer), this.Consumer);

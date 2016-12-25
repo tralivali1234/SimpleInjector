@@ -320,7 +320,6 @@
             {
                 context = c;
 
-                Assert.AreSame(c.ServiceType, typeof(ITimeProvider));
                 Assert.AreSame(c.ImplementationType, typeof(RealTimeProvider));
                 Assert.IsNotNull(c.Consumer, "c.Consumer is null");
                 Assert.AreSame(context.Consumer.ImplementationType, typeof(ServiceWithProperty<ITimeProvider>));
