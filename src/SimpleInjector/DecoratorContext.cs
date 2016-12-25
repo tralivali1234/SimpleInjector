@@ -46,8 +46,7 @@ namespace SimpleInjector
         }
 
         /// <summary>
-        /// Gets the closed generic service type for which the decorator is about to be applied. The original
-        /// service type will be returned, even if other decorators have already been applied to this type.
+        /// Gets the closed generic service type for which the decorator is about to be applied.
         /// </summary>
         /// <value>The closed generic service type.</value>
         public Type ServiceType => this.context.ServiceType;

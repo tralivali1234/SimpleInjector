@@ -350,7 +350,7 @@ namespace SimpleInjector.Internals
 
             public bool OverlapsWith(InstanceProducer producerToCheck) =>
                 this.IsConditional || this.ImplementationType == null
-                    ? false // Conditionals never overlap compile time.
+                    ? false // Conditionals never overlap registration time.
                     : GenericTypeBuilder.IsImplementationApplicableToEveryGenericType(
                         producerToCheck.ServiceType,
                         this.ImplementationType);
@@ -371,7 +371,7 @@ namespace SimpleInjector.Internals
                 // NOTE: The producer should only get built after it matches the delegate, to prevent
                 // unneeded producers from being created, because this might cause diagnostic warnings, 
                 // such as torn lifestyle warnings.
-                var shouldBuildProducer =
+                bool shouldBuildProducer =
                     (this.ImplementationType == null || closedImplementation != null)
                     && this.MatchesPredicate(context)
                     && context.ImplementationType != null;
