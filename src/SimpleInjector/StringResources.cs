@@ -92,6 +92,24 @@ namespace SimpleInjector
                 NoteThatSkippedDecoratorsWereFound(serviceType, skippedDecorators),
                 NoteThatTypeLookalikesAreFound(serviceType, lookalikes));
 
+        internal static string MultipleClosedTypesAreAssignableFromType(Type type, Type genericTypeDefinition, 
+            Type[] types, string otherMethod) =>
+            string.Format(CultureInfo.InvariantCulture,
+                "Your request is ambiguous. " +
+                "There are multiple closed version of {0} that are assignable from {1}, namely: {2}. " +
+                "Use {3} instead to get this list of closed types to select the proper type.",
+                genericTypeDefinition.TypeName(),
+                type.TypeName(),
+                types.Select(TypeName).ToCommaSeparatedText(),
+                otherMethod);
+
+        internal static string TypeIsNotAssignableFromOpenGenericType(Type type, Type genericTypeDefinition) =>
+            string.Format(CultureInfo.InvariantCulture,
+                "None of the base classes or implemented interfaces of {0}, nor {0} itself are a closed " +
+                "type of {1}.",
+                type.TypeName(),
+                genericTypeDefinition.TypeName());
+
         internal static string OpenGenericTypesCanNotBeResolved(Type serviceType) =>
             string.Format(CultureInfo.InvariantCulture,
                 "The request for type {0} is invalid because it is an open generic type: it is only " +
@@ -364,14 +382,15 @@ namespace SimpleInjector
 
         internal static string DependencyInjectionBehaviorReturnedNull(IDependencyInjectionBehavior behavior) =>
             string.Format(CultureInfo.InvariantCulture,
-                "The {0} that was registered through the Container.{3}.{4} property, returned a null " +
-                "reference after its BuildExpression() method. {1}.BuildExpression implementations should " +
-                "never return null, but should throw a {2} with an expressive message instead.",
+                "The {0} that was registered through the Container.{1}.{2} property, returned a null " +
+                "reference from its {3} method. {4}.{3} implementations should never return null, but " +
+                "should throw an {5} with an expressive message instead.",
                 behavior.GetType().TypeName(),
-                nameof(IDependencyInjectionBehavior),
-                typeof(ActivationException).FullName,
                 nameof(Container.Options),
-                nameof(ContainerOptions.DependencyInjectionBehavior));
+                nameof(ContainerOptions.DependencyInjectionBehavior),
+                nameof(IDependencyInjectionBehavior.GetInstanceProducerFor),
+                nameof(IDependencyInjectionBehavior),
+                typeof(ActivationException).FullName);
 
         internal static string ConstructorResolutionBehaviorReturnedNull(
             IConstructorResolutionBehavior selectionBehavior, Type implementationType) =>
@@ -873,7 +892,7 @@ namespace SimpleInjector
                     "{2}" +
                     "Please see https://simpleinjector.org/asmld for more information about this " +
                     "problem and how to solve it.",
-                    Helpers.ToCSharpFriendlyName(duplicateAssemblyLookalike, fullyQualifiedName: true),
+                    Types.ToCSharpFriendlyName(duplicateAssemblyLookalike, fullyQualifiedName: true),
                     serviceType.GetAssembly().FullName,
                     BuildAssemblyLocationMessage(serviceType, duplicateAssemblyLookalike));
             }
@@ -924,6 +943,6 @@ namespace SimpleInjector
         private static string TypeName(this Type type) => type.ToFriendlyName(UseFullyQualifiedTypeNames);
 
         private static string CSharpFriendlyName(Type type) =>
-            Helpers.ToCSharpFriendlyName(type, UseFullyQualifiedTypeNames);
+            Types.ToCSharpFriendlyName(type, UseFullyQualifiedTypeNames);
     }
 }

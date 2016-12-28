@@ -262,6 +262,9 @@
         {
             Assert.IsNotNull(actualTypes);
 
+            expectedTypes = expectedTypes.ToArray();
+            actualTypes = actualTypes.ToArray();
+
             if (!expectedTypes.SequenceEqual(actualTypes))
             {
                 Assert.Fail("The sequences did not match.\nExpected list: {0}.\nActual list: {1}",
@@ -283,6 +286,6 @@
             }
         }
 
-        private static string ToFriendlyName(Type type) => Helpers.ToFriendlyName(type);
+        private static string ToFriendlyName(Type type) => type.ToFriendlyName();
     }
 }

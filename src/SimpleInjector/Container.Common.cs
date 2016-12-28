@@ -348,7 +348,7 @@ namespace SimpleInjector
         {
             if (this.expressionBuilding != null)
             {
-                var e = new ExpressionBuildingEventArgs(serviceType, implementationType,
+                var e = new ExpressionBuildingEventArgs(implementationType,
                     instanceCreatorExpression, registration.Lifestyle);
 
                 var relationships = new KnownRelationshipCollection(registration.GetRelationships().ToList());
@@ -704,7 +704,7 @@ namespace SimpleInjector
 
             public bool AppliesTo(Type implementationType, InitializationContext context)
             {
-                var typeHierarchy = Helpers.GetTypeHierarchyFor(implementationType);
+                var typeHierarchy = Types.GetTypeHierarchyFor(implementationType);
 
                 return typeHierarchy.Contains(this.serviceType);
             }
