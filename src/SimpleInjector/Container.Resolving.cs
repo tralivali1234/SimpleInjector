@@ -59,6 +59,7 @@ namespace SimpleInjector
         /// <exception cref="ActivationException">Thrown when there are errors resolving the service instance.</exception>
         public TService GetInstance<TService>() where TService : class
         {
+            this.ThrowWhenDisposed();
             this.LockContainer();
 
             InstanceProducer instanceProducer;
@@ -204,16 +205,32 @@ namespace SimpleInjector
         //// 7.1 DO NOT have public members that can either throw or not based on some option.
         public InstanceProducer GetRegistration(Type serviceType, bool throwOnFailure)
         {
+            // GetRegistration might lock the container, but only when not-explicitly made registrations are
+            // requested.
             this.ThrowWhenDisposed();
-            this.LockContainer();
 
             InstanceProducer producer;
 
             if (!this.rootProducerCache.TryGetValue(serviceType, out producer))
             {
-                producer = this.GetRegistrationEvenIfInvalid(serviceType, InjectionConsumerInfo.Root, 
-                    autoCreateConcreteTypes: true);
+                producer = this.GetExplicitlyRegisteredInstanceProducer(serviceType, InjectionConsumerInfo.Root);
 
+                if (producer == null)
+                {
+                    // The producer is created implicitly. This forces us to lock the container.
+                    // Such implicit registration could be done through in numberous ways (such as
+                    // through unregistered type resotion, or because the type is concrete). Being able to
+                    // make registrations after such call, could lead to unexpected behavior, which is why
+                    // locking the container makes most sense.
+                    // We even lock when the producer is null, because unregistered type resolution events may
+                    // have been invoked.
+                    this.LockContainer();
+
+                    producer = this.GetRegistrationEvenIfInvalid(serviceType, InjectionConsumerInfo.Root,
+                        autoCreateConcreteTypes: true);
+                }
+
+                // Add the producer, even when it's null.
                 this.AppendRootInstanceProducer(serviceType, producer);
             }
 
@@ -228,12 +245,7 @@ namespace SimpleInjector
             return producerIsValid ? producer : null;
         }
 
-        internal Action<TImplementation> GetInitializer<TImplementation>(InitializationContext context)
-        {
-            return this.GetInitializer<TImplementation>(typeof(TImplementation), context);
-        }
-
-        internal Action<object> GetInitializer(Type implementationType, InitializationContext context)
+        internal Action<object> GetInitializer(Type implementationType, Registration context)
         {
             return this.GetInitializer<object>(implementationType, context);
         }
@@ -241,8 +253,6 @@ namespace SimpleInjector
         internal InstanceProducer GetRegistrationEvenIfInvalid(Type serviceType, InjectionConsumerInfo consumer,
             bool autoCreateConcreteTypes = true)
         {
-            this.LockContainer();
-
             if (serviceType.ContainsGenericParameters())
             {
                 throw new ArgumentException(StringResources.OpenGenericTypesCanNotBeResolved(serviceType), 
@@ -251,12 +261,12 @@ namespace SimpleInjector
 
             // This Func<T> is a bit ugly, but does save us a lot of duplicate code.
             Func<InstanceProducer> buildProducer =
-                () => this.BuildInstanceProducerForType(serviceType, autoCreateConcreteTypes);
+                () => this.BuildInstanceProducerForType(serviceType, consumer, autoCreateConcreteTypes);
 
             return this.GetInstanceProducerForType(serviceType, consumer, buildProducer);
         }
 
-        private Action<T> GetInitializer<T>(Type implementationType, InitializationContext context)
+        private Action<T> GetInitializer<T>(Type implementationType, Registration context)
         {
             Action<T>[] initializersForType = this.GetInstanceInitializersFor<T>(implementationType, context);
 
@@ -281,13 +291,13 @@ namespace SimpleInjector
         {
             // This generic overload allows retrieving types that are internal inside a sandbox.
             return this.GetInstanceProducerForType(typeof(TService), context,
-                this.BuildInstanceProducerForType<TService>);
+                () => this.BuildInstanceProducerForType<TService>(context));
         }
 
         private InstanceProducer GetInstanceProducerForType(Type serviceType, InjectionConsumerInfo context)
         {
             return this.GetInstanceProducerForType(serviceType, context,
-                () => this.BuildInstanceProducerForType(serviceType));
+                () => this.BuildInstanceProducerForType(serviceType, context));
         }
 
         private object GetInstanceForRootType<TService>() where TService : class
@@ -323,17 +333,18 @@ namespace SimpleInjector
             return instanceProducer.GetInstance();
         }
 
-        private InstanceProducer BuildInstanceProducerForType<TService>() where TService : class
+        private InstanceProducer BuildInstanceProducerForType<TService>(InjectionConsumerInfo context) 
+            where TService : class
         {
             return this.BuildInstanceProducerForType(typeof(TService),
-                this.TryBuildInstanceProducerForConcreteUnregisteredType<TService>);
+                () => this.TryBuildInstanceProducerForConcreteUnregisteredType<TService>(context));
         }
 
-        private InstanceProducer BuildInstanceProducerForType(Type serviceType, 
+        private InstanceProducer BuildInstanceProducerForType(Type serviceType, InjectionConsumerInfo context,
             bool autoCreateConcreteTypes = true)
         {
             var tryBuildInstanceProducerForConcrete = autoCreateConcreteTypes && !serviceType.IsAbstract()
-                ? () => this.TryBuildInstanceProducerForConcreteUnregisteredType(serviceType)
+                ? () => this.TryBuildInstanceProducerForConcreteUnregisteredType(serviceType, context)
                 : (Func<InstanceProducer>)(() => null);
 
             return this.BuildInstanceProducerForType(serviceType, tryBuildInstanceProducerForConcrete);
@@ -413,11 +424,12 @@ namespace SimpleInjector
                 Type elementType = serviceType.GetElementType();
 
                 // We don't auto-register collections for ambiguous types.
-                if (elementType.IsValueType() || Helpers.IsAmbiguousType(elementType))
+                if (elementType.IsValueType() || Types.IsAmbiguousType(elementType))
                 {
                     return null;
                 }
 
+                // GetAllInstances locks the container
                 bool isContainerControlledCollection =
                     this.GetAllInstances(elementType) is IContainerControlledCollection;
 
@@ -486,13 +498,13 @@ namespace SimpleInjector
 
         private InstanceProducer TryBuildInstanceProducerForCollection(Type serviceType)
         {
-            if (!Helpers.IsGenericCollectionType(serviceType))
+            if (!Types.IsGenericCollectionType(serviceType))
             {
                 return null;
             }
 
             // We don't auto-register collections for ambiguous types.
-            if (Helpers.IsAmbiguousOrValueType(serviceType.GetGenericArguments()[0]))
+            if (Types.IsAmbiguousOrValueType(serviceType.GetGenericArguments()[0]))
             {
                 return null;
             }
@@ -505,8 +517,8 @@ namespace SimpleInjector
                 // will cause (incorrect) diagnostic warnings.
                 if (!this.emptyAndRedirectedCollectionRegistrationCache.TryGetValue(serviceType, out producer))
                 {
-                    producer = this.TryBuildCollectionInstanceProducer(serviceType)
-                        ?? this.TryBuildEmptyCollectionInstanceProducerForEnumerable(serviceType);
+                    // This call might lock the container
+                    producer = this.TryBuildCollectionInstanceProducer(serviceType);
 
                     this.emptyAndRedirectedCollectionRegistrationCache[serviceType] = producer;
                 }
@@ -543,31 +555,6 @@ namespace SimpleInjector
             return null;
         }
 
-        private InstanceProducer TryBuildEmptyCollectionInstanceProducerForEnumerable(Type serviceType)
-        {
-#pragma warning disable 0618
-            if (!this.Options.ResolveUnregisteredCollections)
-            {
-                return null;
-            }
-#pragma warning restore 0618
-
-            if (serviceType.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-            {
-                // During the time that this method is called we are after the registration phase and there is
-                // no registration for this IEnumerable<T> type (and unregistered type resolution didn't pick
-                // it up). This means that we will must always return an empty set and we will do this by
-                // registering a SingletonInstanceProducer with an empty array of that type.
-                var producer = this.BuildEmptyCollectionInstanceProducerForEnumerable(serviceType);
-
-                producer.IsContainerAutoRegistered = true;
-
-                return producer;
-            }
-
-            return null;
-        }
-
         private InstanceProducer BuildEmptyCollectionInstanceProducerForEnumerable(Type enumerableType)
         {
             Type elementType = enumerableType.GetGenericArguments()[0];
@@ -581,15 +568,16 @@ namespace SimpleInjector
             return new InstanceProducer(enumerableType, registration, registerExternalProducer: true);
         }
 
-        private InstanceProducer TryBuildInstanceProducerForConcreteUnregisteredType<TConcrete>()
+        private InstanceProducer TryBuildInstanceProducerForConcreteUnregisteredType<TConcrete>(
+            InjectionConsumerInfo context)
             where TConcrete : class
         {
-            if (this.IsConcreteConstructableType(typeof(TConcrete)))
+            if (this.IsConcreteConstructableType(typeof(TConcrete), context))
             {
                 return this.GetOrBuildInstanceProducerForConcreteUnregisteredType(typeof(TConcrete), () =>
                 {
                     var registration =
-                        this.SelectionBasedLifestyle.CreateRegistration<TConcrete, TConcrete>(this);
+                        this.SelectionBasedLifestyle.CreateRegistration<TConcrete>(this);
 
                     return BuildInstanceProducerForConcreteUnregisteredType(typeof(TConcrete), registration);
                 });
@@ -598,17 +586,18 @@ namespace SimpleInjector
             return null;
         }
 
-        private InstanceProducer TryBuildInstanceProducerForConcreteUnregisteredType(Type type)
+        private InstanceProducer TryBuildInstanceProducerForConcreteUnregisteredType(Type type,
+            InjectionConsumerInfo context)
         {
             if (type.IsAbstract() || type.IsValueType() || type.ContainsGenericParameters() || 
-                !this.IsConcreteConstructableType(type))
+                !this.IsConcreteConstructableType(type, context))
             {
                 return null;
             }
 
             return this.GetOrBuildInstanceProducerForConcreteUnregisteredType(type, () =>
             {
-                var registration = this.SelectionBasedLifestyle.CreateRegistration(type, type, this);
+                var registration = this.SelectionBasedLifestyle.CreateRegistration(type, this);
 
                 return BuildInstanceProducerForConcreteUnregisteredType(type, registration);
             });
@@ -651,11 +640,11 @@ namespace SimpleInjector
             return producer;
         }
 
-        private bool IsConcreteConstructableType(Type concreteType)
+        private bool IsConcreteConstructableType(Type concreteType, InjectionConsumerInfo context)
         {
             string errorMesssage;
 
-            return this.Options.IsConstructableType(concreteType, concreteType, out errorMesssage);
+            return this.Options.IsConstructableType(concreteType, out errorMesssage);
         }
 
         // We're registering a service type after 'locking down' the container here and that means that the
@@ -675,7 +664,7 @@ namespace SimpleInjector
             // Prevent the compiler, JIT, and processor to reorder these statements to prevent the instance
             // producer from being added after the snapshot has been made accessible to other threads.
             // This is important on architectures with a weak memory model (such as ARM).
-#if NETSTANDARD
+#if NETSTANDARD1_0 || NETSTANDARD1_3
             Interlocked.MemoryBarrier();
 #else
             Thread.MemoryBarrier();
@@ -704,7 +693,7 @@ namespace SimpleInjector
 
         private void ThrowMissingInstanceProducerException(Type serviceType)
         {
-            if (Helpers.IsConcreteConstructableType(serviceType))
+            if (Types.IsConcreteConstructableType(serviceType))
             {
                 this.ThrowNotConstructableException(serviceType);
             }
@@ -719,12 +708,12 @@ namespace SimpleInjector
         }
 
         private bool ContainsOneToOneRegistrationForCollectionType(Type collectionServiceType) =>
-            Helpers.IsGenericCollectionType(collectionServiceType) && 
+            Types.IsGenericCollectionType(collectionServiceType) && 
                 this.ContainsExplicitRegistrationFor(collectionServiceType.GetGenericArguments()[0]);
 
         // NOTE: MakeGenericType will fail for IEnumerable<T> when T is a pointer.
         private bool ContainsCollectionRegistrationFor(Type serviceType) =>
-            !Helpers.IsGenericCollectionType(serviceType) && !serviceType.IsPointer &&
+            !Types.IsGenericCollectionType(serviceType) && !serviceType.IsPointer &&
                 this.ContainsExplicitRegistrationFor(typeof(IEnumerable<>).MakeGenericType(serviceType));
 
         private bool ContainsExplicitRegistrationFor(Type serviceType) =>
@@ -735,7 +724,7 @@ namespace SimpleInjector
             string exceptionMessage;
 
             // Since we are at this point, we know the concreteType is NOT constructable.
-            this.Options.IsConstructableType(concreteType, concreteType, out exceptionMessage);
+            this.Options.IsConstructableType(concreteType, out exceptionMessage);
 
             throw new ActivationException(
                 StringResources.ImplicitRegistrationCouldNotBeMadeForType(concreteType, this.HasRegistrations)

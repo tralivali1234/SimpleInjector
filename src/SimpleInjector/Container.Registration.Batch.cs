@@ -53,9 +53,58 @@ namespace SimpleInjector
         /// <exception cref="InvalidOperationException">Thrown when the given set of 
         /// <paramref name="assemblies"/> contain multiple types that implement the same 
         /// closed generic version of the given <paramref name="openGenericServiceType"/>.</exception>
+        public void Register(Type openGenericServiceType, params Assembly[] assemblies)
+        {
+            this.Register(openGenericServiceType, assemblies, this.SelectionBasedLifestyle);
+        }
+
+        /// <summary>
+        /// Registers all concrete, non-generic, public and internal types in the given set of
+        /// <paramref name="assemblies"/> that implement the given <paramref name="openGenericServiceType"/> 
+        /// with container's default lifestyle (which is transient by default).
+        /// <see cref="TypesToRegisterOptions.IncludeDecorators">Decorators</see> and
+        /// <see cref="TypesToRegisterOptions.IncludeGenericTypeDefinitions">generic type definitions</see>
+        /// will be excluded from registration, while 
+        /// <see cref="TypesToRegisterOptions.IncludeComposites">composites</see> are included.
+        /// </summary>
+        /// <param name="openGenericServiceType">The definition of the open generic type.</param>
+        /// <param name="assemblies">A list of assemblies that will be searched.</param>
+        /// <exception cref="ArgumentNullException">Thrown when one of the arguments contain a null
+        /// reference (Nothing in VB).</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="openGenericServiceType"/> is not
+        /// an open generic type.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the given set of 
+        /// <paramref name="assemblies"/> contain multiple types that implement the same 
+        /// closed generic version of the given <paramref name="openGenericServiceType"/>.</exception>
         public void Register(Type openGenericServiceType, IEnumerable<Assembly> assemblies)
         {
             this.Register(openGenericServiceType, assemblies, this.SelectionBasedLifestyle);
+        }
+
+        /// <summary>
+        /// Registers all concrete, non-generic, public and internal types in the given
+        /// <paramref name="assembly"/> that implement the given <paramref name="openGenericServiceType"/> 
+        /// with the supplied <paramref name="lifestyle"/>.
+        /// <see cref="TypesToRegisterOptions.IncludeDecorators">Decorators</see> and
+        /// <see cref="TypesToRegisterOptions.IncludeGenericTypeDefinitions">generic type definitions</see>
+        /// will be excluded from registration, while 
+        /// <see cref="TypesToRegisterOptions.IncludeComposites">composites</see> are included.
+        /// </summary>
+        /// <param name="openGenericServiceType">The definition of the open generic type.</param>
+        /// <param name="assembly">An assembly that will be searched.</param>
+        /// <param name="lifestyle">The lifestyle to register instances with.</param>
+        /// <exception cref="ArgumentNullException">Thrown when one of the arguments contain a null
+        /// reference (Nothing in VB).</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="openGenericServiceType"/> is not
+        /// an open generic type.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the given 
+        /// <paramref name="assembly"/> contain multiple types that implement the same 
+        /// closed generic version of the given <paramref name="openGenericServiceType"/>.</exception>
+        public void Register(Type openGenericServiceType, Assembly assembly, Lifestyle lifestyle)
+        {
+            Requires.IsNotNull(assembly, nameof(assembly));
+
+            this.Register(openGenericServiceType, new[] { assembly }, lifestyle);
         }
 
         /// <summary>
@@ -162,6 +211,52 @@ namespace SimpleInjector
             {
                 this.AddRegistration(mapping.serviceType, mapping.registration);
             }
+        }
+
+        /// <summary>
+        /// Registers all concrete, non-generic, public and internal types in the given set of
+        /// <paramref name="assemblies"/> that implement the given <paramref name="openGenericServiceType"/> 
+        /// with <see cref="Lifestyle.Singleton" /> lifestyle.
+        /// <see cref="TypesToRegisterOptions.IncludeDecorators">Decorators</see> and
+        /// <see cref="TypesToRegisterOptions.IncludeGenericTypeDefinitions">generic type definitions</see>
+        /// will be excluded from registration, while 
+        /// <see cref="TypesToRegisterOptions.IncludeComposites">composites</see> are included.
+        /// </summary>
+        /// <param name="openGenericServiceType">The definition of the open generic type.</param>
+        /// <param name="assemblies">A list of assemblies that will be searched.</param>
+        /// <exception cref="ArgumentNullException">Thrown when one of the arguments contain a null
+        /// reference (Nothing in VB).</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="openGenericServiceType"/> is not
+        /// an open generic type.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the given set of 
+        /// <paramref name="assemblies"/> contain multiple types that implement the same 
+        /// closed generic version of the given <paramref name="openGenericServiceType"/>.</exception>
+        public void RegisterSingleton(Type openGenericServiceType, params Assembly[] assemblies)
+        {
+            this.RegisterSingleton(openGenericServiceType, (IEnumerable<Assembly>)assemblies);
+        }
+
+        /// <summary>
+        /// Registers all concrete, non-generic, public and internal types in the given set of
+        /// <paramref name="assemblies"/> that implement the given <paramref name="openGenericServiceType"/> 
+        /// with <see cref="Lifestyle.Singleton" /> lifestyle.
+        /// <see cref="TypesToRegisterOptions.IncludeDecorators">Decorators</see> and
+        /// <see cref="TypesToRegisterOptions.IncludeGenericTypeDefinitions">generic type definitions</see>
+        /// will be excluded from registration, while 
+        /// <see cref="TypesToRegisterOptions.IncludeComposites">composites</see> are included.
+        /// </summary>
+        /// <param name="openGenericServiceType">The definition of the open generic type.</param>
+        /// <param name="assemblies">A list of assemblies that will be searched.</param>
+        /// <exception cref="ArgumentNullException">Thrown when one of the arguments contain a null
+        /// reference (Nothing in VB).</exception>
+        /// <exception cref="ArgumentException">Thrown when <paramref name="openGenericServiceType"/> is not
+        /// an open generic type.</exception>
+        /// <exception cref="InvalidOperationException">Thrown when the given set of 
+        /// <paramref name="assemblies"/> contain multiple types that implement the same 
+        /// closed generic version of the given <paramref name="openGenericServiceType"/>.</exception>
+        public void RegisterSingleton(Type openGenericServiceType, IEnumerable<Assembly> assemblies)
+        {
+            this.Register(openGenericServiceType, assemblies, Lifestyle.Singleton);
         }
 
         /// <summary>
@@ -313,12 +408,12 @@ namespace SimpleInjector
                 from assembly in assemblies.Distinct()
                 where !assembly.IsDynamic
                 from type in GetTypesFromAssembly(assembly)
-                where Helpers.IsConcreteType(type)
+                where Types.IsConcreteType(type)
                 where options.IncludeGenericTypeDefinitions || !type.IsGenericTypeDefinition()
-                where Helpers.ServiceIsAssignableFromImplementation(serviceType, type)
-                let ctor = this.SelectImplementationTypeConstructorOrNull(serviceType, type)
-                where ctor == null || options.IncludeDecorators || !Helpers.IsDecorator(serviceType, ctor)
-                where ctor == null || options.IncludeComposites || !Helpers.IsComposite(serviceType, ctor)
+                where Types.ServiceIsAssignableFromImplementation(serviceType, type)
+                let ctor = this.SelectImplementationTypeConstructorOrNull(type)
+                where ctor == null || options.IncludeDecorators || !Types.IsDecorator(serviceType, ctor)
+                where ctor == null || options.IncludeComposites || !Types.IsComposite(serviceType, ctor)
                 select type;
 
             return types.ToArray();
@@ -341,15 +436,15 @@ namespace SimpleInjector
 
         private bool IsDecorator(Type openGenericServiceType, Type implemenationType)
         {
-            var ctor = this.SelectImplementationTypeConstructorOrNull(openGenericServiceType, implemenationType);
-            return ctor != null && Helpers.IsDecorator(openGenericServiceType, ctor);
+            var ctor = this.SelectImplementationTypeConstructorOrNull(implemenationType);
+            return ctor != null && Types.IsDecorator(openGenericServiceType, ctor);
         }
 
-        private ConstructorInfo SelectImplementationTypeConstructorOrNull(Type serviceType, Type implementationType)
+        private ConstructorInfo SelectImplementationTypeConstructorOrNull(Type implementationType)
         {
             try
             {
-                return this.Options.SelectConstructor(serviceType, implementationType);
+                return this.Options.SelectConstructor(implementationType);
             }
             catch (ActivationException)
             {
@@ -431,6 +526,9 @@ namespace SimpleInjector
 
             private static void RequiresNoDuplicateRegistrations(BatchMapping[] mappings)
             {
+                // Use of 'Count() > 1' instead of 'Skip(1).Any()' is not a performance problem here, and is actually
+                // faster in this case, because Enumerable.GroupBy returns an instance that implements ICollection<T>.
+#pragma warning disable RCS1083
                 var duplicateServiceTypes =
                     from mapping in mappings
                     from closedServiceType in mapping.ClosedServiceTypes

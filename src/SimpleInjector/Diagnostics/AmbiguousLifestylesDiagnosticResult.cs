@@ -25,6 +25,7 @@ namespace SimpleInjector.Diagnostics
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.Diagnostics;
     using System.Linq;
     using SimpleInjector.Diagnostics.Debugger;
 
@@ -33,6 +34,7 @@ namespace SimpleInjector.Diagnostics
     /// and lifestyle, which might cause multiple instances to be created during the lifespan of that lifestyle.
     /// For more information, see: https://simpleinjector.org/diaal.
     /// </summary>
+    [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ", nq}")]
     public class AmbiguousLifestylesDiagnosticResult : DiagnosticResult
     {
         internal AmbiguousLifestylesDiagnosticResult(Type serviceType, string description, 
@@ -89,7 +91,7 @@ namespace SimpleInjector.Diagnostics
             lifestyles.Select(lifestyle => lifestyle.Name).ToCommaSeparatedText();
 
         private static string ToCommaSeparatedText(IEnumerable<InstanceProducer> producers) => 
-            producers.Select(r => r.ServiceType).Distinct().Select(Helpers.ToFriendlyName)
+            producers.Select(r => r.ServiceType).Distinct().Select(TypesExtensions.ToFriendlyName)
                 .ToCommaSeparatedText();
     }
 }

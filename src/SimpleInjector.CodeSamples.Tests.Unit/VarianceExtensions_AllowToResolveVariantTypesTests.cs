@@ -1,10 +1,7 @@
 ﻿namespace SimpleInjector.CodeSamples.Tests.Unit
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
-    using SimpleInjector.Extensions;
     using SimpleInjector.Tests.Unit;
 
     /// <summary>
@@ -45,7 +42,7 @@
             // Arrange
             var container = CreateContainer();
 
-            container.RegisterSingleton<IInvariantInterface<CustomerMovedEvent>>(
+            container.RegisterInstance<IInvariantInterface<CustomerMovedEvent>>(
                 new InvariantClass<CustomerMovedEvent>());
 
             // Act
@@ -66,7 +63,7 @@
 
             Func<string> expectedFunc = () => expectedValue;
 
-            container.RegisterSingleton<Func<string>>(expectedFunc);
+            container.RegisterInstance<Func<string>>(expectedFunc);
 
             // Act
             var actualFunc = container.GetInstance<Func<object>>();
@@ -87,7 +84,7 @@
 
             var container = CreateContainer();
 
-            container.RegisterSingleton<Action<object>>(s => { actualValue = s; });
+            container.RegisterInstance<Action<object>>(s => { actualValue = s; });
 
             // Act
             var action = container.GetInstance<Action<string>>();
@@ -104,7 +101,7 @@
             // Arrange
             var container = CreateContainer();
 
-            container.RegisterSingleton<Action<string>>(s => { });
+            container.RegisterInstance<Action<string>>(s => { });
 
             // Act
             var registration = container.GetRegistration(typeof(Action<object>));
@@ -119,14 +116,14 @@
             // Arrange
             string expectedMessage =
                 "There is an error in the container's configuration. " +
-                "It is impossible to resolve type System.Action`1[System.ArgumentException], " +
+                "It is impossible to resolve type Action<ArgumentException>, " +
                 "because there are 2 registrations that are applicable. " +
                 "Ambiguous registrations: ";
 
             var container = CreateContainer();
 
-            container.RegisterSingleton<Action<object>>(s => { });
-            container.RegisterSingleton<Action<Exception>>(s => { });
+            container.RegisterInstance<Action<object>>(s => { });
+            container.RegisterInstance<Action<Exception>>(s => { });
 
             try
             {
@@ -139,8 +136,8 @@
             {
                 Assert.IsTrue(ex.Message.Contains(expectedMessage), 
                     "Expected: " + expectedMessage + " Actual: " + ex.Message);
-                Assert.IsTrue(ex.Message.Contains(typeof(Action<object>).Name));
-                Assert.IsTrue(ex.Message.Contains(typeof(Action<Exception>).Name));
+                Assert.IsTrue(ex.Message.Contains("Action<Object>"), " Actual: " + ex.Message);
+                Assert.IsTrue(ex.Message.Contains("Action<Exception>"), " Actual: " + ex.Message);
             }
         }
 

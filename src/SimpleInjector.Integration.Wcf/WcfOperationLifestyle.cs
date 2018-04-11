@@ -1,7 +1,7 @@
 ﻿#region Copyright Simple Injector Contributors
 /* The Simple Injector is an easy-to-use Inversion of Control library for .NET
  * 
- * Copyright (c) 2013-2016 Simple Injector Contributors
+ * Copyright (c) 2013-2018 Simple Injector Contributors
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
  * associated documentation files (the "Software"), to deal in the Software without restriction, including 
@@ -24,6 +24,7 @@ namespace SimpleInjector.Integration.Wcf
 {
     using System;
     using System.ServiceModel;
+    using SimpleInjector.Lifestyles;
 
     /// <summary>
     /// Defines a lifestyle that caches instances for the lifetime of a WCF service class. WCF allows service
@@ -40,18 +41,15 @@ namespace SimpleInjector.Integration.Wcf
     /// container.Register<IUnitOfWork, EntityFrameworkUnitOfWork>(Lifestyle.Scoped);
     /// ]]></code>
     /// </example>
-    public class WcfOperationLifestyle : ScopedLifestyle
+    [Obsolete("WcfOperationLifestyle has been deprecated. " +
+        "Please use SimpleInjector.Lifestyles.AsyncScopedLifestyle instead.",
+        error: false)]
+    public class WcfOperationLifestyle : AsyncScopedLifestyle
     {
-        internal static readonly WcfOperationLifestyle WithDisposal = new WcfOperationLifestyle();
-
-#pragma warning disable 0618
-        internal static readonly WcfOperationLifestyle NoDisposal = new WcfOperationLifestyle(false);
-#pragma warning restore 0618
-
         /// <summary>Initializes a new instance of the <see cref="WcfOperationLifestyle"/> class. The instance
         /// will ensure that created and cached instance will be disposed after the execution of the web
         /// request ended and when the created object implements <see cref="IDisposable"/>.</summary>
-        public WcfOperationLifestyle() : base("WCF Operation")
+        public WcfOperationLifestyle()
         {
         }
 
@@ -60,12 +58,13 @@ namespace SimpleInjector.Integration.Wcf
         /// Specifies whether the created and cached instance will be disposed after the execution of the WCF
         /// operation ended and when the created object implements <see cref="IDisposable"/>. 
         /// </param>
-        [Obsolete("This constructor has been deprecated and will be removed in a future release. " +
-            "Please use WcfOperationLifestyle() instead.",
-            error: false)]
-        public WcfOperationLifestyle(bool disposeInstanceWhenOperationEnds)
-            : base("WCF Operation", disposeInstanceWhenOperationEnds)
+        [Obsolete("This constructor has been deprecated. Please use WcfOperationLifestyle() instead.",
+            error: true)]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public WcfOperationLifestyle(bool disposeInstanceWhenOperationEnds) : this()
         {
+            throw new NotSupportedException(
+                "This constructor has been deprecated. Please use WcfOperationLifestyle() instead.");
         }
 
         /// <summary>
@@ -78,42 +77,15 @@ namespace SimpleInjector.Integration.Wcf
         /// (Nothing in VB).</exception>
         /// <exception cref="InvalidOperationException">Will be thrown when there is currently no active
         /// WCF operation in the supplied <paramref name="container"/> instance.</exception>
-        [Obsolete("WhenWcfOperationEnds has been deprecated and will be removed in a future release. " +
-            "Please use Lifestyle.Scoped.WhenScopeEnds(Container) instead.",
-            error: false)]
+        [Obsolete("WhenWcfOperationEnds has been deprecated. " +
+            "Please use Lifestyle.Scoped.WhenScopeEnds(Container, Action) instead.",
+            error: true)]
         [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static void WhenWcfOperationEnds(Container container, Action action)
         {
-            WithDisposal.WhenScopeEnds(container, action);
-        }
-        
-        internal static Scope GetCurrentScopeCore()
-        {
-            var operationContext = OperationContext.Current;
-
-            var instanceContext = operationContext != null ? operationContext.InstanceContext : null;
-
-            return instanceContext != null ? instanceContext.GetCurrentScope() : null;
-        }
-
-        /// <summary>
-        /// Returns the current <see cref="Scope"/> for this lifestyle and the given 
-        /// <paramref name="container"/>, or null when this method is executed outside the context of a scope.
-        /// </summary>
-        /// <param name="container">The container instance that is related to the scope to return.</param>
-        /// <returns>A <see cref="Scope"/> instance or null when there is no scope active in this context.</returns>
-        protected override Scope GetCurrentScopeCore(Container container) => GetCurrentScopeCore();
-
-        /// <summary>
-        /// Creates a delegate that upon invocation return the current <see cref="Scope"/> for this
-        /// lifestyle and the given <paramref name="container"/>, or null when the delegate is executed outside
-        /// the context of such scope.
-        /// </summary>
-        /// <param name="container">The container for which the delegate gets created.</param>
-        /// <returns>A <see cref="Func{T}"/> delegate. This method never returns null.</returns>
-        protected override Func<Scope> CreateCurrentScopeProvider(Container container)
-        {
-            return GetCurrentScopeCore;
+            throw new NotSupportedException(
+                "WhenWcfOperationEnds has been deprecated. " +
+                "Please use Lifestyle.Scoped.WhenScopeEnds(Container, Action) instead.");
         }
     }
 }

@@ -25,7 +25,7 @@ namespace SimpleInjector.Internals
     using System;
     using System.Collections.Generic;
 
-#if !PCL
+#if NET40 || NET45
     using System.Runtime.Serialization;
 
     [Serializable]
@@ -34,13 +34,14 @@ namespace SimpleInjector.Internals
     {
         private readonly List<Type> types = new List<Type>(1);
 
-        public CyclicDependencyException(Type typeToValidate)
+        public CyclicDependencyException(InstanceProducer originatingProducer, Type typeToValidate)
             : base(StringResources.TypeDependsOnItself(typeToValidate))
         {
+            this.OriginatingProducer = originatingProducer;
             this.types.Add(typeToValidate);
         }
 
-#if !PCL
+#if NET40 || NET45
         protected CyclicDependencyException(SerializationInfo info, StreamingContext context)
             : base(info, context)
         {
@@ -54,6 +55,8 @@ namespace SimpleInjector.Internals
         public override string Message => base.Message + " " + StringResources.CyclicDependencyGraphMessage(this.types);
 
         internal IEnumerable<Type> DependencyCycle => this.types;
+
+        internal InstanceProducer OriginatingProducer { get; }
 
         internal void AddTypeToCycle(Type type)
         {

@@ -44,7 +44,10 @@ namespace SimpleInjector.Integration.AspNetCore.Mvc
             error: false)]
         public SimpleInjectorTagHelperActivator(Container container)
         {
-            Requires.IsNotNull(container, nameof(container));
+            if (container == null)
+            {
+                throw new ArgumentNullException(nameof(container));
+            }
 
             this.container = container;
         }
@@ -56,19 +59,29 @@ namespace SimpleInjector.Integration.AspNetCore.Mvc
         /// <param name="tagHelperSelector">The predicate that determines which tag helpers should be created
         /// by the supplied <paramref name="container"/> (when the predicate returns true) or using the 
         /// supplied <paramref name="frameworkTagHelperActivator"/> (when the predicate returns false).</param>
-        /// <param name="frameworkTagHelperActivator">The container instance.</param>
+        /// <param name="frameworkTagHelperActivator">The framework's tag helper activator.</param>
         public SimpleInjectorTagHelperActivator(Container container, Predicate<Type> tagHelperSelector,
             ITagHelperActivator frameworkTagHelperActivator)
         {
-            Requires.IsNotNull(container, nameof(container));
-            Requires.IsNotNull(tagHelperSelector, nameof(tagHelperSelector));
-            Requires.IsNotNull(frameworkTagHelperActivator, nameof(frameworkTagHelperActivator));
+            if (container == null)
+            {
+                throw new ArgumentNullException(nameof(container));
+            }
+
+            if (tagHelperSelector == null)
+            {
+                throw new ArgumentNullException(nameof(tagHelperSelector));
+            }
+
+            if (frameworkTagHelperActivator == null)
+            {
+                throw new ArgumentNullException(nameof(frameworkTagHelperActivator));
+            }
 
             this.container = container;
             this.tagHelperSelector = tagHelperSelector;
             this.frameworkTagHelperActivator = frameworkTagHelperActivator;
         }
-
 
         /// <summary>Creates an <see cref="ITagHelper"/>.</summary>
         /// <typeparam name="TTagHelper">The <see cref="ITagHelper"/> type.</typeparam>

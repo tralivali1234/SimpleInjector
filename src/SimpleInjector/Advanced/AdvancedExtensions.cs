@@ -1,7 +1,7 @@
 ﻿#region Copyright Simple Injector Contributors
 /* The Simple Injector is an easy-to-use Inversion of Control library for .NET
  * 
- * Copyright (c) 2013 Simple Injector Contributors
+ * Copyright (c) 2013-2018 Simple Injector Contributors
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
  * associated documentation files (the "Software"), to deal in the Software without restriction, including 
@@ -23,7 +23,6 @@
 namespace SimpleInjector.Advanced
 {
     using System;
-    using System.Diagnostics.CodeAnalysis;
     using System.Reflection;
 
     /// <summary>
@@ -60,25 +59,6 @@ namespace SimpleInjector.Advanced
             container.ThrowWhenDisposed();
 
             return container.IsVerifying;
-        }
-
-        /// <summary>This method has been removed.</summary>
-        /// <param name="container">The container.</param>
-        /// <typeparam name="TService">The type for with an initializer must be built.</typeparam>
-        /// <returns>An <see cref="Action{TService}"/> delegate or <b>null</b>.</returns>
-        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
-        [Obsolete(
-            "This method has been removed. Use Container.GetRegistration().Registration." +
-            "InitializeInstance instead to initialize an existing instance.",
-            error: true)]
-        [ExcludeFromCodeCoverage]
-        public static Action<TService> GetInitializer<TService>(this Container container)
-        {
-            Requires.IsNotNull(container, nameof(container));
-
-            throw new InvalidOperationException(
-                "This method has been removed. Use Container.GetRegistration().Registration." +
-                "InitializeInstance instead to initialize an existing instance.");
         }
 
         /// <summary>
@@ -158,23 +138,14 @@ namespace SimpleInjector.Advanced
         /// <exception cref="NotSupportedException">Thrown when the method is called for a registration
         /// that is made with one of the <b>RegisterCollection</b> overloads that accepts a dynamic collection
         /// (an <b>IEnumerable</b> or <b>IEnumerable&lt;TService&gt;</b>).</exception>
+        [Obsolete("Please use Container." + nameof(Container.Collections) + "." +
+            nameof(ContainerCollectionRegistrator.AppendTo) + " instead.", error: false)]
         public static void AppendToCollection(this Container container, Type serviceType, 
             Registration registration)
         {
             Requires.IsNotNull(container, nameof(container));
-            Requires.IsNotNull(serviceType, nameof(serviceType));
-            Requires.IsNotNull(registration, nameof(registration));
-            Requires.IsReferenceType(serviceType, nameof(serviceType));
-            Requires.IsNotAnAmbiguousType(serviceType, nameof(serviceType));
 
-            Requires.IsRegistrationForThisContainer(container, registration, nameof(registration));
-            Requires.ServiceOrItsGenericTypeDefinitionIsAssignableFromImplementation(serviceType,
-                registration.ImplementationType, nameof(registration));
-
-            Requires.OpenGenericTypesDoNotContainUnresolvableTypeArguments(serviceType, new[] { registration }, 
-                "registration");
-
-            container.AppendToCollectionInternal(serviceType, registration);
+            container.Collections.AppendTo(serviceType, registration);
         }
 
         /// <summary>
@@ -192,30 +163,21 @@ namespace SimpleInjector.Advanced
         /// <exception cref="NotSupportedException">Thrown when the method is called for a registration
         /// that is made with one of the <b>RegisterCollection</b> overloads that accepts a dynamic collection
         /// (an <b>IEnumerable</b> or <b>IEnumerable&lt;TService&gt;</b>).</exception>
+        [Obsolete("Please use Container." + nameof(Container.Collections) + "." +
+            nameof(ContainerCollectionRegistrator.AppendTo) + " instead.", error: false)]
         public static void AppendToCollection(this Container container, Type serviceType,
             Type implementationType)
         {
             Requires.IsNotNull(container, nameof(container));
-            Requires.IsNotNull(serviceType, nameof(serviceType));
-            Requires.IsNotNull(implementationType, nameof(implementationType));
-            Requires.IsReferenceType(serviceType, nameof(serviceType));
-            Requires.IsNotAnAmbiguousType(serviceType, nameof(serviceType));
 
-            Requires.ServiceOrItsGenericTypeDefinitionIsAssignableFromImplementation(serviceType,
-                implementationType, nameof(implementationType));
-
-            Requires.OpenGenericTypesDoNotContainUnresolvableTypeArguments(serviceType, 
-                new[] { implementationType }, nameof(implementationType));
-
-            container.AppendToCollectionInternal(serviceType, implementationType);
+            container.Collections.AppendTo(serviceType, implementationType);
         }
 
-        internal static void Verify(this IDependencyInjectionBehavior behavior, Type serviceType, 
-            ConstructorInfo constructor)
+        internal static void Verify(this IDependencyInjectionBehavior behavior, ConstructorInfo constructor)
         {
-            foreach (var parameter in constructor.GetParameters())
+            foreach (ParameterInfo parameter in constructor.GetParameters())
             {
-                behavior.Verify(new InjectionConsumerInfo(serviceType, constructor.DeclaringType, parameter));
+                behavior.Verify(new InjectionConsumerInfo(parameter));
             }
         }
     }

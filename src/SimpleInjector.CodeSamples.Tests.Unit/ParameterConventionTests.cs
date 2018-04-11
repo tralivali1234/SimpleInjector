@@ -32,6 +32,8 @@
                 convention.WithParameter(() => DateTime.MinValue),
                 convention.WithParameter("name", () => "bar"));
 
+            container.Verify();
+
             container.GetInstance<ClassWithOnlyPrimitiveConstructorParams>();
         }
 
@@ -52,6 +54,8 @@
                 convention.WithParameter(() => DateTime.MinValue),
                 convention.WithParameter("name", () => "bar"));
 
+            container.Verify();
+
             container.GetInstance<ClassWithOnlyPrimitiveConstructorParams>();
         }
 
@@ -69,8 +73,10 @@
             // ctor: ClassWithPrimiveConstructorParams(string someValue, DateTime now, string name)
             container.RegisterSingleton<ClassWithOnlyPrimitiveConstructorParams>(
                 convention.WithParameter("someValue", "foo"),
-                convention.WithParameter(() => DateTime.MinValue),
-                convention.WithParameter("name", () => "bar"));
+                convention.WithParameter(DateTime.MinValue),
+                convention.WithParameter("name", "bar"));
+
+            container.Verify();
 
             container.GetInstance<ClassWithOnlyPrimitiveConstructorParams>();
         }
@@ -89,8 +95,10 @@
             // ctor: ClassWithPrimiveConstructorParams(string someValue, DateTime now, string name)
             container.RegisterSingleton<IService, ClassWithOnlyPrimitiveConstructorParams>(
                 convention.WithParameter("someValue", "foo"),
-                convention.WithParameter(() => DateTime.MinValue),
-                convention.WithParameter("name", () => "bar"));
+                convention.WithParameter(DateTime.MinValue),
+                convention.WithParameter("name", "bar"));
+
+            container.Verify();
 
             container.GetInstance<ClassWithOnlyPrimitiveConstructorParams>();
         }
@@ -115,6 +123,8 @@
                 convention.WithParameter(() => now),
                 convention.WithParameter("name", () => name));
 
+            container.Verify();
+
             // Act
             var instance = container.GetInstance<ClassWithOnlyPrimitiveConstructorParams>();
 
@@ -134,12 +144,14 @@
 
             container.Options.RegisterParameterConvention(convention);
 
-            container.RegisterSingleton<IDependency>(new Dependency());
+            container.RegisterInstance<IDependency>(new Dependency());
 
             // Act
             // ctor: ClassWithAPrimitiveConstructorParam(IDependency dependency, Decimal someDecimal)
             container.RegisterSingleton<ClassWithAPrimitiveConstructorParam>(
                 convention.WithParameter("someDecimal", decimal.MinValue));
+
+            container.Verify();
         }
 
         [TestMethod]
@@ -152,11 +164,13 @@
             var container = new Container();
             var convention = new ParameterConvention();
             container.Options.RegisterParameterConvention(convention);
-            container.RegisterSingleton<IDependency>(expectedDependency);
+            container.RegisterInstance<IDependency>(expectedDependency);
 
             // ctor: ClassWithAPrimitiveConstructorParam(IDependency dependency, Decimal someDecimal)
             container.RegisterSingleton<ClassWithAPrimitiveConstructorParam>(
                 convention.WithParameter("someDecimal", expectedDecimal));
+
+            container.Verify();
 
             // Act
             var instance = container.GetInstance<ClassWithAPrimitiveConstructorParam>();

@@ -93,7 +93,6 @@ namespace SimpleInjector
 
         private readonly object locker = new object();
         private readonly Lazy<Expression> lazyExpression;
-        private readonly InitializationContext initializationContext;
 
         private CyclicDependencyValidator validator;
         private Func<object> instanceCreator;
@@ -127,10 +126,9 @@ namespace SimpleInjector
 
             this.ServiceType = serviceType;
             this.Registration = registration;
-            this.validator = new CyclicDependencyValidator(registration.ImplementationType);
+            this.validator = new CyclicDependencyValidator(this);
 
             this.lazyExpression = new Lazy<Expression>(this.BuildExpressionInternal);
-            this.initializationContext = new InitializationContext(this, registration);
 
             if (registerExternalProducer)
             {
@@ -138,6 +136,15 @@ namespace SimpleInjector
             }
 
             this.instanceCreator = this.BuildAndReplaceInstanceCreatorAndCreateFirstInstance;
+        }
+
+        // Flagging the registration with WrapsInstanceCreationDelegate prevents false diagnostic warnings.
+        private InstanceProducer(Type serviceType, Expression expression, Container container)
+            : this(serviceType,
+                  new ExpressionRegistration(expression, container) { WrapsInstanceCreationDelegate = true })
+        {
+            // Overrides earlier set value. This prevents ExpressionBuilt from being applied.
+            this.lazyExpression = Helpers.ToLazy(expression);
         }
 
         /// <summary>
@@ -211,9 +218,28 @@ namespace SimpleInjector
             nameof(this.Lifestyle), this.Lifestyle.Name);
 
         internal IEnumerable<InstanceProducer> SelfAndWrappedProducers =>
-            this.wrappedProducers == null
-                ? new[] { this }
-                : this.wrappedProducers.Concat(new[] { this });
+            this.wrappedProducers == null ? this.Self : this.wrappedProducers.Concat(this.Self);
+
+        private IEnumerable<InstanceProducer> Self => new[] { this };
+
+        /// <summary>
+        /// Creates a new <see cref="InstanceProducer"/> based on the given <paramref name="serviceType"/> 
+        /// and <paramref name="expression"/> where the <paramref name="expression"/> will be used as-is;
+        /// no interception (using <see cref="Container.ExpressionBuilt">ExpressionBuilt</see>) such as
+        /// decorators will be applied.
+        /// </summary>
+        /// <param name="serviceType">The service type for which this instance is created.</param>
+        /// <param name="expression">The expression that describes the instance to be produced.</param>
+        /// <param name="container">The <see cref="Container"/> instance for this registration.</param>
+        /// <returns>A new <see cref="InstanceProducer"/> that describes the expression.</returns>
+        public static InstanceProducer FromExpression(Type serviceType, Expression expression, Container container)
+        {
+            Requires.IsNotNull(serviceType, nameof(serviceType));
+            Requires.IsNotNull(expression, nameof(expression));
+            Requires.IsNotNull(container, nameof(container));
+
+            return new InstanceProducer(serviceType, expression, container);
+        }
 
         /// <summary>Produces an instance.</summary>
         /// <returns>An instance. Will never return null.</returns>
@@ -239,12 +265,6 @@ namespace SimpleInjector
                 // We have to clear the counter of the cyclic dependency validator to make sure it will not
                 // throw a false positive on the next resolve.
                 this.ResetCyclicDependencyValidator();
-
-                if (ex is CyclicDependencyException)
-                {
-                    var cex = ex as CyclicDependencyException;
-                    throw new ActivationException(cex.Message, ex);
-                }
 
                 if (this.MustWrapThrownException(ex))
                 {
@@ -277,7 +297,16 @@ namespace SimpleInjector
             }
             catch (CyclicDependencyException ex)
             {
-                ex.AddTypeToCycle(this.Registration.ImplementationType);
+                // When a cyclic dependency is detected, a CyclicDependencyException will buble up, and will
+                // get enriched by Registration instances with type information about the types in the chain.
+                // In case the current producer is the OriginatingProducer, we should transform the exception
+                // into an ActivationException to prevent types from being added that are not part of the
+                // cycle.
+                if (ex.OriginatingProducer == this)
+                {
+                    throw new ActivationException(ex.Message, ex);
+                }
+
                 throw;
             }
             catch (Exception ex)
@@ -372,7 +401,7 @@ namespace SimpleInjector
             catch (Exception ex)
             {
                 throw new InvalidOperationException(StringResources.ConfigurationInvalidCreatingInstanceFailed(
-                    this.ServiceType, ex), ex);
+                    this.Registration.ImplementationType, ex), ex);
             }
 
             return instance;
@@ -453,7 +482,7 @@ namespace SimpleInjector
             try
             {
                 creator = CompilationHelpers.CompileExpression<object>(this.Container, expression);
-                creator = this.Container.WrapWithResolveInterceptor(this.initializationContext, creator);
+                creator = this.Container.WrapWithResolveInterceptor(this, creator);
             }
             catch (Exception ex)
             {
@@ -489,7 +518,7 @@ namespace SimpleInjector
             // We must lock the container, because not locking could lead to race conditions.
             this.Container.LockContainer();
 
-            var expression = this.Registration.BuildExpression(this);
+            var expression = this.Registration.BuildExpression();
 
             if (expression == null)
             {
@@ -555,7 +584,7 @@ namespace SimpleInjector
 
         // Prevents any recursive calls from taking place.
         // This method will be inlined by the JIT.
-#if NET45 || NETSTANDARD
+#if !NET40
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
         private void CheckForCyclicDependencies()
@@ -567,7 +596,7 @@ namespace SimpleInjector
         }
 
         // This method will be inlined by the JIT.
-#if NET45 || NETSTANDARD
+#if !NET40
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
         private void RemoveCyclicDependencyValidator()
@@ -587,7 +616,7 @@ namespace SimpleInjector
         // exception, because a new call to that provider would otherwise make the validator think it is a
         // recursive call and throw an exception, and this would hide the exception that would otherwise be
         // thrown by the provider itself.
-#if NET45 || NETSTANDARD
+#if !NET40
         [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
         private void ResetCyclicDependencyValidator()
@@ -636,10 +665,10 @@ namespace SimpleInjector
 
             public Lifestyle Lifestyle => this.producer.Lifestyle;
 
-            [DebuggerDisplay("{SimpleInjector.Helpers.ToFriendlyName(" + nameof(ServiceType) + "), nq}")]
+            [DebuggerDisplay("{" + TypesExtensions.FriendlyName + "(" + nameof(ServiceType) + "), nq}")]
             public Type ServiceType => this.producer.ServiceType;
 
-            [DebuggerDisplay("{SimpleInjector.Helpers.ToFriendlyName(" + nameof(ImplementationType) + "), nq}")]
+            [DebuggerDisplay("{" + TypesExtensions.FriendlyName + "(" + nameof(ImplementationType) + "), nq}")]
             public Type ImplementationType => this.producer.ImplementationType;
 
             public KnownRelationship[] Relationships => this.producer.GetRelationships();

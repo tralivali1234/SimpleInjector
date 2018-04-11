@@ -24,16 +24,14 @@ namespace SimpleInjector.Internals
 {
     using System;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
-    using System.Reflection;
 
     /// <summary>
     /// A map containing a generic argument (such as T) and the concrete type (such as Int32) that it
     /// represents.
     /// </summary>
-    [DebuggerDisplay(
-        nameof(Argument) + ": {SimpleInjector.Helpers.ToFriendlyName(" + nameof(Argument) + "), nq}, " +
-        nameof(ConcreteType) + ": {SimpleInjector.Helpers.ToFriendlyName(" + nameof(ConcreteType) + "), nq}")]
+    [DebuggerDisplay("{DebuggerDisplay, nq}")]
     internal sealed class ArgumentMapping : IEquatable<ArgumentMapping>
     {
         internal ArgumentMapping(Type argument, Type concreteType)
@@ -42,19 +40,27 @@ namespace SimpleInjector.Internals
             this.ConcreteType = concreteType;
         }
 
-        [DebuggerDisplay("{SimpleInjector.Helpers.ToFriendlyName(" + nameof(Argument) + "), nq}")]
+        [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode",
+            Justification = "This method is called by the debugger.")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal string DebuggerDisplay =>
+            $"{nameof(Argument)}: {this.Argument.ToFriendlyName()}, " +
+            $"{nameof(ConcreteType)}: {this.ConcreteType.ToFriendlyName()}";
+
+        [DebuggerDisplay("{Argument, nq}")]
         internal Type Argument { get; }
 
-        [DebuggerDisplay("{SimpleInjector.Helpers.ToFriendlyName(" + nameof(ConcreteType) + "), nq}")]
+        [DebuggerDisplay("{ConcreteType, nq}")]
         internal Type ConcreteType { get; }
 
-        internal bool TypeConstraintsAreSatisfied => 
-            new TypeConstraintValidator { Mapping = this }.AreTypeConstraintsSatisfied();
+        internal bool TypeConstraintsAreSatisfied => this.Validator.AreTypeConstraintsSatisfied();
+
+        private TypeConstraintValidator Validator => new TypeConstraintValidator { Mapping = this };
 
         /// <summary>Implements equality. Needed for doing LINQ distinct operations.</summary>
         /// <param name="other">The other to compare to.</param>
         /// <returns>True or false.</returns>
-        bool IEquatable<ArgumentMapping>.Equals(ArgumentMapping other) => 
+        bool IEquatable<ArgumentMapping>.Equals(ArgumentMapping other) =>
             this.Argument == other.Argument && this.ConcreteType == other.ConcreteType;
 
         /// <summary>Overrides the default hash code. Needed for doing LINQ distinct operations.</summary>

@@ -143,6 +143,8 @@ namespace SimpleInjector
         /// <typeparamref name="TService"/> or <see cref="Func{T}"/> where <b>T</b> is
         /// <typeparamref name="TService"/>.</exception>
         public void RegisterDecorator<TService, TDecorator>(Lifestyle lifestyle)
+            where TService : class
+            where TDecorator : class, TService
         {
             this.RegisterDecoratorCore(typeof(TService), typeof(TDecorator), lifestyle: lifestyle);
         }
@@ -631,9 +633,10 @@ namespace SimpleInjector
             Requires.IsNotNull(serviceType, nameof(serviceType));
             Requires.IsNotNull(decoratorType, nameof(decoratorType));
 
+            Requires.IsNotPartiallyClosed(serviceType, nameof(serviceType));
             Requires.ServiceTypeIsNotClosedWhenImplementationIsOpen(serviceType, decoratorType);
             Requires.ServiceOrItsGenericTypeDefinitionIsAssignableFromImplementation(serviceType, decoratorType, nameof(serviceType));
-            Requires.ImplementationHasSelectableConstructor(this, serviceType, decoratorType, nameof(decoratorType));
+            Requires.ImplementationHasSelectableConstructor(this, decoratorType, nameof(decoratorType));
             Requires.IsDecorator(this, serviceType, decoratorType, nameof(decoratorType));
             Requires.DecoratorIsNotAnOpenGenericTypeDefinitionWhenTheServiceTypeIsNot(serviceType, decoratorType, nameof(decoratorType));
             Requires.OpenGenericTypeDoesNotContainUnresolvableTypeArguments(serviceType, decoratorType, nameof(decoratorType));

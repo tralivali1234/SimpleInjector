@@ -24,7 +24,10 @@ namespace SimpleInjector
 {
     using System;
     using System.Collections.ObjectModel;
+    using System.ComponentModel;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Globalization;
     using System.Linq.Expressions;
     using SimpleInjector.Advanced;
 
@@ -35,17 +38,14 @@ namespace SimpleInjector
     /// <see cref="Expression"/> property to change the component that is 
     /// currently being built.
     /// </summary>
-    [DebuggerDisplay(nameof(ExpressionBuildingEventArgs) + " (" + 
-        nameof(RegisteredServiceType) + ": {SimpleInjector.Helpers.ToFriendlyName(" + nameof(RegisteredServiceType) + "), nq}, " +
-        nameof(Expression) + ": {" + nameof(Expression) + "})")]
+    [DebuggerDisplay(nameof(ExpressionBuildingEventArgs) + " ({" + nameof(DebuggerDisplay) + "), nq})")]
     public class ExpressionBuildingEventArgs : EventArgs
     {
         private Expression expression;
 
-        internal ExpressionBuildingEventArgs(Type registeredServiceType, Type knownImplementationType, 
+        internal ExpressionBuildingEventArgs(Type knownImplementationType,
             Expression expression, Lifestyle lifestyle)
         {
-            this.RegisteredServiceType = registeredServiceType;
             this.KnownImplementationType = knownImplementationType;
             this.Lifestyle = lifestyle;
 
@@ -54,7 +54,20 @@ namespace SimpleInjector
 
         /// <summary>Gets the registered service type that is currently requested.</summary>
         /// <value>The registered service type that is currently requested.</value>
-        public Type RegisteredServiceType { get; }
+        [Obsolete(
+            "This property has been removed. Please use KnownImplementationType instead. " +
+            "See https://simpleinjector.org/depr3.",
+            error: true)]
+        [EditorBrowsable(EditorBrowsableState.Never)]
+        public Type RegisteredServiceType
+        {
+            get
+            {
+                throw new NotSupportedException(
+                    "This property has been removed. Please use KnownImplementationType instead. " +
+                    "See https://simpleinjector.org/depr3.");
+            }
+        }
 
         /// <summary>
         /// Gets the type that is known to be returned by the 
@@ -87,10 +100,18 @@ namespace SimpleInjector
             {
                 Requires.IsNotNull(value, nameof(value));
 
+                if (!this.KnownImplementationType.IsAssignableFrom(value.Type))
+                {
+                    throw new ArgumentException(
+                        StringResources.KnownImplementationTypeShouldBeAssignableFromExpressionType(
+                            this.KnownImplementationType,
+                            value.Type));
+                }
+
                 this.expression = value;
             }
         }
-        
+
         /// <summary>
         /// Gets the collection of currently known relationships. This information is used by the Diagnostics 
         /// Debug View. Change the contents of this collection to represent the changes made to the
@@ -99,5 +120,16 @@ namespace SimpleInjector
         /// </summary>
         /// <value>The collection of <see cref="KnownRelationship"/> instances.</value>
         public Collection<KnownRelationship> KnownRelationships { get; internal set; }
+
+        [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode",
+            Justification = "This method is called by the debugger.")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal string DebuggerDisplay => string.Format(
+            CultureInfo.InvariantCulture,
+            "{0}: {1}, {2}: {3}",
+            nameof(this.KnownImplementationType),
+            this.KnownImplementationType.ToFriendlyName(),
+            nameof(this.KnownImplementationType),
+            this.KnownImplementationType.ToFriendlyName());
     }
 }

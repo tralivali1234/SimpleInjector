@@ -182,10 +182,16 @@ namespace SimpleInjector.Internals
                 // We allow the registration in case it doesn't have a predicate (meaning that the type is
                 // solely conditional by its generic type constraints) while it is the first registration.
                 // In that case there is no ambiguity, since there's nothing to replace (fixes #116).
-                if (this.providers.Any() || provider.Predicate != null)
+                if (provider.Predicate != null)
                 {
                     throw new NotSupportedException(
                         StringResources.MakingConditionalRegistrationsInOverridingModeIsNotSupported());
+                }
+
+                if (this.providers.Any())
+                {
+                    throw new NotSupportedException(
+                        StringResources.MakingRegistrationsWithTypeConstraintsInOverridingModeIsNotSupported());
                 }
             }
         }
@@ -379,8 +385,11 @@ namespace SimpleInjector.Internals
                 return shouldBuildProducer ? this.GetProducer(context) : null;
             }
 
+            // In case this is a type factory registration (meaning ImplementationType is null) we consider
+            // the service to be matching, since we can't (and should not) invoke the factory.
             public bool MatchesServiceType(Type serviceType) =>
-                GenericTypeBuilder.MakeClosedImplementation(serviceType, this.ImplementationType) != null;
+                this.ImplementationType == null 
+                || GenericTypeBuilder.MakeClosedImplementation(serviceType, this.ImplementationType) != null;
 
             private Type GetImplementationTypeThroughFactory(Type serviceType, InjectionConsumerInfo consumer)
             {
@@ -451,8 +460,7 @@ namespace SimpleInjector.Internals
             }
 
             private Registration CreateNewRegistrationFor(PredicateContext context) =>
-                this.lifestyle.CreateRegistration(context.ImplementationType, context.ImplementationType,
-                    this.container);
+                this.lifestyle.CreateRegistration(context.ImplementationType, this.container);
 
             private bool MatchesPredicate(PredicateContext context) =>
                 this.Predicate != null ? this.Predicate(context) : true;

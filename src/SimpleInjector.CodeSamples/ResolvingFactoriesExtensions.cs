@@ -26,7 +26,7 @@
 
                     Type funcType = typeof(Func<>).MakeGenericType(serviceType);
 
-                    var factoryDelegate = 
+                    var factoryDelegate =
                         Expression.Lambda(funcType, registration.BuildExpression()).Compile();
 
                     e.Register(Expression.Constant(factoryDelegate));
@@ -53,9 +53,8 @@
                     Type funcType = typeof(Func<>).MakeGenericType(serviceType);
                     Type lazyType = typeof(Lazy<>).MakeGenericType(serviceType);
 
-                    var factoryDelegate = 
-                        Expression.Lambda(funcType, registration.BuildExpression()).Compile();
-                        
+                    var factoryDelegate = Expression.Lambda(funcType, registration.BuildExpression()).Compile();
+
                     var lazyConstructor = (
                         from ctor in lazyType.GetConstructors()
                         where ctor.GetParameters().Length == 1
@@ -63,7 +62,14 @@
                         select ctor)
                         .Single();
 
-                    e.Register(Expression.New(lazyConstructor, Expression.Constant(factoryDelegate)));
+                    var expression = Expression.New(lazyConstructor, Expression.Constant(factoryDelegate));
+
+                    var lazyRegistration = registration.Lifestyle.CreateRegistration(
+                        serviceType: lazyType,
+                        instanceCreator: Expression.Lambda<Func<object>>(expression).Compile(),
+                        container: container);
+
+                    e.Register(lazyRegistration);
                 }
             };
         }
@@ -91,7 +97,7 @@
                 var factoryArguments = genericArguments.Take(genericArguments.Length - 1).ToArray();
 
                 var constructor = container.Options.ConstructorResolutionBehavior
-                    .GetConstructor(componentType, componentType);
+                    .GetConstructor(componentType);
 
                 var parameters = (
                     from factoryArgumentType in factoryArguments
@@ -117,8 +123,8 @@
             return type.GetGenericTypeDefinition().GetGenericArguments().Length > 1;
         }
 
-        private static NewExpression BuildNewExpression(Container container, 
-            ConstructorInfo constructor, 
+        private static NewExpression BuildNewExpression(Container container,
+            ConstructorInfo constructor,
             ParameterExpression[] funcParameterExpression)
         {
             var ctorParameters = constructor.GetParameters();
@@ -132,8 +138,8 @@
                 throw new ActivationException(string.Format(CultureInfo.CurrentCulture,
                     "The constructor of type {0} did not contain the sequence of the following " +
                     "constructor parameters: {1}.",
-                    constructor.DeclaringType.FullName,
-                    string.Join(", ", funcParameterTypes.Select(t => t.Name))));
+                    constructor.DeclaringType.ToFriendlyName(),
+                    string.Join(", ", funcParameterTypes.Select(t => t.ToFriendlyName()))));
             }
 
             var firstCtorParameterExpressions = ctorParameterTypes

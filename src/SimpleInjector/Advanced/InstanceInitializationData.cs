@@ -24,51 +24,47 @@ namespace SimpleInjector.Advanced
 {
     using System;
     using System.Diagnostics;
+    using System.Diagnostics.CodeAnalysis;
 
     /// <summary>
     /// Contains data that can be used to initialize a created instance. This data includes the actual
     /// created <see cref="Instance"/> and the <see cref="Context"/> information about the created instance.
     /// </summary>
-    [DebuggerDisplay(nameof(InstanceInitializationData) + 
-        " ({" + nameof(context) + "." + nameof(InitializationContext.DebuggerDisplay) + ", nq})")]
+    [DebuggerDisplay(nameof(InstanceInitializationData) + " ({" + nameof(DebuggerDisplay) + ", nq})")]
     public struct InstanceInitializationData : IEquatable<InstanceInitializationData>
     {
-        // NOTE: Because of performance considerations, this type has been made a struct. This prevents Simple
-        // Injector from creating an extra reference type every time an instance is created. This would cause 
-        // extra pressure on the GC.
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly InitializationContext context;
-
-        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-        private readonly object instance;
-
         /// <summary>Initializes a new instance of the <see cref="InstanceInitializationData"/> struct.</summary>
-        /// <param name="context">The <see cref="InitializationContext"/> that contains contextual information
+        /// <param name="context">The <see cref="InitializerContext"/> that contains contextual information
         /// about the created instance.</param>
         /// <param name="instance">The created instance.</param>
-        public InstanceInitializationData(InitializationContext context, object instance)
+        public InstanceInitializationData(InitializerContext context, object instance)
         {
             Requires.IsNotNull(context, nameof(context));
             Requires.IsNotNull(instance, nameof(instance));
 
-            this.context = context;
-            this.instance = instance;
+            this.Context = context;
+            this.Instance = instance;
         }
 
         /// <summary>Gets the <see cref="InitializationContext"/> with contextual information about the 
         /// created instance.</summary>
         /// <value>The <see cref="InitializationContext"/>.</value>
-        public InitializationContext Context => this.context;
+        public InitializerContext Context { get; }
 
         /// <summary>Gets the created instance.</summary>
         /// <value>The created instance.</value>
-        public object Instance => this.instance;
+        public object Instance { get; }
+
+        [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode",
+            Justification = "This method is called by the debugger.")]
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        internal string DebuggerDisplay => this.Context.DebuggerDisplay;
 
         /// <summary>Returns the hash code for this instance.</summary>
         /// <returns>A 32-bit signed integer that is the hash code for this instance.</returns>
         public override int GetHashCode() => 
-            (this.context == null ? 0 : this.context.GetHashCode()) ^
-            (this.instance == null ? 0 : this.instance.GetHashCode());
+            (this.Context == null ? 0 : this.Context.GetHashCode()) ^
+            (this.Instance == null ? 0 : this.Instance.GetHashCode());
 
         /// <summary>Indicates whether this instance and a specified object are equal.</summary>
         /// <param name="obj">Another object to compare to.</param>
@@ -92,8 +88,8 @@ namespace SimpleInjector.Advanced
         /// <param name="second">The second object to compare.</param>
         /// <returns>True if a and b are equal; otherwise, false.</returns>
         public static bool operator ==(InstanceInitializationData first, InstanceInitializationData second) => 
-            object.ReferenceEquals(first.context, second.context) &&
-            object.ReferenceEquals(first.instance, second.instance);
+            object.ReferenceEquals(first.Context, second.Context) &&
+            object.ReferenceEquals(first.Instance, second.Instance);
 
         /// <summary>
         /// Indicates whether the values of two specified  <see cref="InstanceInitializationData"/>  objects are 
