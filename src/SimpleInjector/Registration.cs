@@ -117,15 +117,15 @@ namespace SimpleInjector
         /// <see cref="IPropertySelectionBehavior"/>) and by applying any initializers.
         /// </remarks>
         /// <param name="instance">The instance to initialize.</param>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="instance"/> is a null reference
-        /// (Nothing in VB).</exception>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="instance"/> is a null
+        /// reference (Nothing in VB).</exception>
         /// <exception cref="ArgumentException">Thrown when the supplied <paramref name="instance"/> is not
         /// of type <see cref="ImplementationType"/>.</exception>
         public void InitializeInstance(object instance)
         {
             Requires.IsNotNull(instance, nameof(instance));
-            Requires.ServiceIsAssignableFromImplementation(this.ImplementationType, instance.GetType(),
-                nameof(instance));
+            Requires.ServiceIsAssignableFromImplementation(
+                this.ImplementationType, instance.GetType(), nameof(instance));
 
             if (this.instanceInitializer == null)
             {
@@ -307,11 +307,14 @@ namespace SimpleInjector
         /// registered <see cref="SimpleInjector.Container.RegisterInitializer">initializers</see> that are 
         /// applicable to the given <typeparamref name="TService"/> (if any).
         /// </summary>
-        /// <typeparam name="TService">The interface or base type that can be used to retrieve instances.</typeparam>
+        /// <typeparam name="TService">
+        /// The interface or base type that can be used to retrieve instances.
+        /// </typeparam>
         /// <param name="instanceCreator">
         /// The delegate supplied by the user that allows building or creating new instances.</param>
         /// <returns>An <see cref="Expression"/>.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when one of the arguments is a null reference.</exception>
+        /// <exception cref="ArgumentNullException">Thrown when one of the arguments is a null reference.
+        /// </exception>
         protected Expression BuildTransientExpression<TService>(Func<TService> instanceCreator)
             where TService : class
         {
@@ -355,8 +358,9 @@ namespace SimpleInjector
                 expression = this.WrapWithPropertyInjector(this.ImplementationType, expression);
                 expression = this.InterceptInstanceCreation(this.ImplementationType, expression);
                 expression = this.WrapWithInitializer(this.ImplementationType, expression);
+                expression = this.ReplacePlaceHoldersWithOverriddenParameters(expression);
 
-                return this.ReplacePlaceHoldersWithOverriddenParameters(expression);
+                return expression;
             }
             catch (CyclicDependencyException ex)
             {
@@ -441,7 +445,7 @@ namespace SimpleInjector
         {
             PropertyInfo[] properties = this.GetPropertiesToInject(implementationType);
 
-            if (properties.Any())
+            if (properties.Length > 0)
             {
                 PropertyInjectionHelper.VerifyProperties(properties);
 
@@ -450,7 +454,18 @@ namespace SimpleInjector
 
                 expressionToWrap = data.Expression;
 
-                this.AddRelationships(implementationType, data.Producers);
+                var knownRelationships =
+                    from pair in data.Producers.Zip(data.Properties, (prod, prop) => new { prod, prop })
+                    select new KnownRelationship(
+                        implementationType: implementationType,
+                        lifestyle: this.Lifestyle,
+                        consumer: new InjectionConsumerInfo(implementationType, pair.prop),
+                        dependency: pair.prod);
+
+                foreach (var knownRelationship in knownRelationships)
+                {
+                    this.AddRelationship(knownRelationship);
+                }
             }
 
             return expressionToWrap;
@@ -499,25 +514,23 @@ namespace SimpleInjector
             return new OverriddenParameter();
         }
 
-        private void AddRelationships(Type implementationType, IEnumerable<InstanceProducer> dependencies)
-        {
-            var relationships =
-                from dependency in dependencies
-                select new KnownRelationship(implementationType, this.Lifestyle, dependency);
-
-            foreach (var relationship in relationships)
-            {
-                this.AddRelationship(relationship);
-            }
-        }
-
-        private void AddRelationships(ConstructorInfo constructor, ParameterDictionary<DependencyData> parameters)
+        private void AddRelationships(
+            ConstructorInfo constructor, ParameterDictionary<DependencyData> parameters)
         {
             var knownRelationships =
                 from dependency in parameters.Values
-                select dependency.Producer ?? this.GetOverriddenParameterFor(dependency.Parameter).Producer;
+                let producer = dependency.Producer
+                    ?? this.GetOverriddenParameterFor(dependency.Parameter).Producer
+                select new KnownRelationship(
+                    implementationType: constructor.DeclaringType,
+                    lifestyle: this.Lifestyle,
+                    consumer: new InjectionConsumerInfo(dependency.Parameter),
+                    dependency: producer);
 
-            this.AddRelationships(constructor.DeclaringType, knownRelationships);
+            foreach (var knownRelationship in knownRelationships)
+            {
+                this.AddRelationship(knownRelationship);
+            }
         }
 
         private static Expression WrapWithNullChecker<TService>(Expression expression) where TService : class

@@ -15,12 +15,12 @@
         private static string NotSupportedMessage => new NotSupportedException().Message;
 
         [TestMethod]
-        public void GetAllInstances_OnContainerControlledCollection_ReturnsAGenericIList()
+        public void GetAllInstances_Always_ReturnsAGenericIList()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             // Act
             var plugins = container.GetAllInstances<IPlugin>();
@@ -30,12 +30,12 @@
         }
 
         [TestMethod]
-        public void GetAllInstances_OnContainerControlledCollection_CanGetTheInstancesByIndex()
+        public void GetAllInstances_WithValidRegistrations_CanGetTheInstancesByIndex()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             // Act
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
@@ -47,12 +47,12 @@
         }
 
         [TestMethod]
-        public void Count_OnContainerControlledCollection_ReturnsTheExpectedNumberOfElements1()
+        public void Count_CollectionWithTwoElements_Returns2()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1) });
 
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
 
@@ -64,12 +64,12 @@
         }
 
         [TestMethod]
-        public void Count_OnContainerControlledCollection_ReturnsTheExpectedNumberOfElements2()
+        public void Count_CollectionWithThreeElements_Returns3()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
 
@@ -81,12 +81,12 @@
         }
 
         [TestMethod]
-        public void GetAllInstances_OnContainerControlledCollection_IsReadOnlyReturnsTrue()
+        public void GetAllInstances_Always_IsReadOnlyReturnsTrue()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             // Act
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
@@ -96,12 +96,12 @@
         }
 
         [TestMethod]
-        public void SetIndexer_OnContainerControlledCollection_ThrowsNotSupported()
+        public void SetIndexer_Always_ThrowsNotSupported()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
 
@@ -113,12 +113,12 @@
         }
 
         [TestMethod]
-        public void RemoveAt_OnContainerControlledCollection_ThrowsNotSupported()
+        public void RemoveAt_Always_ThrowsNotSupported()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
 
@@ -130,12 +130,12 @@
         }
 
         [TestMethod]
-        public void Insert_OnContainerControlledCollection_ThrowsNotSupported()
+        public void Insert_Always_ThrowsNotSupported()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
 
@@ -147,12 +147,12 @@
         }
 
         [TestMethod]
-        public void Add_OnContainerControlledCollection_ThrowsNotSupported()
+        public void Add_Always_ThrowsNotSupported()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
 
@@ -164,12 +164,12 @@
         }
 
         [TestMethod]
-        public void Clear_OnContainerControlledCollection_ThrowsNotSupported()
+        public void Clear_Always_ThrowsNotSupported()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
 
@@ -181,12 +181,12 @@
         }
 
         [TestMethod]
-        public void Remove_OnContainerControlledCollection_ThrowsNotSupported()
+        public void Remove_Always_ThrowsNotSupported()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
 
@@ -198,46 +198,107 @@
         }
 
         [TestMethod]
-        public void IndexOf_OnContainerControlledCollection_ThrowsNotSupported()
+        public void IndexOf_Null_ReturnsNegative1()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
 
             // Act
-            Action action = () => plugins.IndexOf(null);
+            int actualIndex = plugins.IndexOf(null);
 
             // Assert
-            AssertThat.ThrowsWithExceptionMessageContains<NotSupportedException>(NotSupportedMessage, action);
+            Assert.AreEqual(-1, actualIndex);
         }
 
         [TestMethod]
-        public void Contains_OnContainerControlledCollection_ThrowsNotSupported()
+        public void Index_ValuePartOfTheCollection1_ReturnsCorrectIndex()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Append<IPlugin, Plugin0>(Lifestyle.Singleton);
+            container.Collection.Append<IPlugin, Plugin1>(Lifestyle.Singleton);
+            container.Collection.Append<IPlugin, Plugin2>(Lifestyle.Singleton);
+
+            var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
+
+            // Act
+            int actualIndex = plugins.IndexOf(plugins.First());
+
+            // Assert
+            Assert.AreEqual(0, actualIndex);
+        }
+
+        [TestMethod]
+        public void Index_ValuePartOfTheCollection2_ReturnsCorrectIndex()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            container.Collection.Append<IPlugin, Plugin0>(Lifestyle.Singleton);
+            container.Collection.Append<IPlugin, Plugin1>(Lifestyle.Singleton);
+            container.Collection.Append<IPlugin, Plugin2>(Lifestyle.Singleton);
+
+            var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
+
+            // Act
+            int actualIndex = plugins.IndexOf(plugins.Last());
+
+            // Assert
+            Assert.AreEqual(2, actualIndex);
+        }
+
+        [TestMethod]
+        public void Contains_ValuePartOfTheCollection_ReturnsTrue()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            container.Collection.Append<IPlugin, Plugin0>(Lifestyle.Singleton);
+            container.Collection.Append<IPlugin, Plugin1>(Lifestyle.Singleton);
+            container.Collection.Append<IPlugin, Plugin2>(Lifestyle.Singleton);
 
             var plugins = container.GetAllInstances<IPlugin>() as ICollection<IPlugin>;
 
             // Act
-            Action action = () => plugins.Contains(null);
+            var result = plugins.Contains(plugins.Last());
 
             // Assert
-            AssertThat.ThrowsWithExceptionMessageContains<NotSupportedException>(NotSupportedMessage, action);
+            Assert.IsTrue(result);
         }
 
         [TestMethod]
-        public void ToArray_OnContainerControlledCollection_Succeeds()
+        public void Contains_ValueNotPartOfTheCollection_ReturnsFalse()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Append<IPlugin, Plugin0>(Lifestyle.Singleton);
+            container.Collection.Append<IPlugin, Plugin1>(Lifestyle.Singleton);
+            container.Collection.Append<IPlugin, Plugin2>(Lifestyle.Singleton);
+
+            var plugins = container.GetAllInstances<IPlugin>() as ICollection<IPlugin>;
+
+            var differentInstance = new Plugin2();
+
+            // Act
+            var result = plugins.Contains(differentInstance);
+
+            // Assert
+            Assert.IsFalse(result);
+        }
+
+        [TestMethod]
+        public void ToArray_WithValidRegistrations_Succeeds()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             // Act
             var plugins = container.GetAllInstances<IPlugin>().ToArray();
@@ -249,14 +310,14 @@
         }
 
         [TestMethod]
-        public void CopyTo_OnContainerControlledCollection_Succeeds()
+        public void CopyTo_WithValidRegistrations_Succeeds()
         {
             // Arrange
             IPlugin[] pluginCopies = new IPlugin[3];
 
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             var plugins = container.GetAllInstances<IPlugin>() as ICollection<IPlugin>;
 
@@ -270,12 +331,12 @@
         }
 
         [TestMethod]
-        public void GetAllInstances_OnContainerControlledCollectionByNonGenericRegistration_CanGetTheInstancesByIndex()
+        public void GetAllInstances_ByNonGenericRegistration_CanGetTheInstancesByIndex()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IPlugin), new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register(typeof(IPlugin), new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             // Act
             var plugins = container.GetAllInstances<IPlugin>() as IList<IPlugin>;
@@ -287,12 +348,12 @@
         }
 
         [TestMethod]
-        public void GetAllInstances_OnDecoratedContainerControlledCollection_CanGetTheInstancesByIndex()
+        public void GetAllInstances_Always_CanGetTheInstancesByIndex()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             container.RegisterDecorator(typeof(IPlugin), typeof(PluginDecorator),
                 context => context.ImplementationType != typeof(Plugin2));
@@ -307,12 +368,12 @@
         }
 
         [TestMethod]
-        public void Count_OnDecoratedContainerControlledCollection_ReturnsTheExpectedNumberOfElements1()
+        public void Count_Always_ReturnsTheExpectedNumberOfElements1()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             container.RegisterDecorator(typeof(IPlugin), typeof(PluginDecorator),
                 context => context.ImplementationType != typeof(Plugin2));
@@ -327,14 +388,14 @@
         }
 
         [TestMethod]
-        public void IEnumerableGetEnumerator_OnContainerControlledCollection_ReturnsACorrectEnumerator()
+        public void IEnumerableGetEnumerator_Always_ReturnsACorrectEnumerator()
         {
             // Arrange
             List<object> pluginsCopy = new List<object>();
 
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(Plugin0), typeof(Plugin1), typeof(Plugin2) });
 
             var plugins = (IEnumerable)container.GetAllInstances<IPlugin>();
 

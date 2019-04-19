@@ -1,7 +1,7 @@
 ﻿#region Copyright Simple Injector Contributors
 /* The Simple Injector is an easy-to-use Inversion of Control library for .NET
  * 
- * Copyright (c) 2013-2016 Simple Injector Contributors
+ * Copyright (c) 2013-2019 Simple Injector Contributors
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
  * associated documentation files (the "Software"), to deal in the Software without restriction, including 
@@ -35,9 +35,13 @@ namespace SimpleInjector.Lifestyles
         private readonly Registration trueRegistration;
         private readonly Registration falseRegistration;
 
-        public HybridRegistration(Type implementationType, Func<bool> test,
-            Registration trueRegistration, Registration falseRegistration,
-            Lifestyle lifestyle, Container container)
+        public HybridRegistration(
+            Type implementationType,
+            Func<bool> test,
+            Registration trueRegistration,
+            Registration falseRegistration,
+            Lifestyle lifestyle,
+            Container container)
             : base(lifestyle, container)
         {
             this.ImplementationType = implementationType;
@@ -62,10 +66,10 @@ namespace SimpleInjector.Lifestyles
                 ifFalse: Expression.Convert(falseExpression, this.ImplementationType));
         }
 
-        internal override void SetParameterOverrides(IEnumerable<OverriddenParameter> overriddenParameters)
+        internal override void SetParameterOverrides(IEnumerable<OverriddenParameter> overrides)
         {
-            this.trueRegistration.SetParameterOverrides(overriddenParameters);
-            this.falseRegistration.SetParameterOverrides(overriddenParameters);
+            this.trueRegistration.SetParameterOverrides(overrides);
+            this.falseRegistration.SetParameterOverrides(overrides);
         }
 
         private void AddRelationships()
@@ -79,15 +83,17 @@ namespace SimpleInjector.Lifestyles
             }
         }
 
-        private IEnumerable<KnownRelationship> GetRelationshipsThisLifestyle(Registration registration) => 
+        private IEnumerable<KnownRelationship> GetRelationshipsThisLifestyle(Registration registration) =>
             from relationship in registration.GetRelationships()
             let mustReplace = object.ReferenceEquals(relationship.Lifestyle, registration.Lifestyle)
             select mustReplace ? this.ReplaceLifestyle(relationship) : relationship;
 
-        private KnownRelationship ReplaceLifestyle(KnownRelationship relationship) => 
+        private KnownRelationship ReplaceLifestyle(KnownRelationship relationship) =>
             new KnownRelationship(
                 relationship.ImplementationType,
                 this.Lifestyle,
-                relationship.Dependency);
+                relationship.Consumer,
+                relationship.Dependency,
+                relationship.AdditionalInformation);
     }
 }

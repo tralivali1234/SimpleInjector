@@ -1,7 +1,7 @@
 ﻿#region Copyright Simple Injector Contributors
 /* The Simple Injector is an easy-to-use Inversion of Control library for .NET
  * 
- * Copyright (c) 2015 Simple Injector Contributors
+ * Copyright (c) 2015-2018 Simple Injector Contributors
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
  * associated documentation files (the "Software"), to deal in the Software without restriction, including 
@@ -33,7 +33,8 @@ namespace SimpleInjector
 #endif
     public partial class Container
     {
-        private readonly Dictionary<Type, List<Type>> skippedNonGenericDecorators = new Dictionary<Type, List<Type>>();
+        private readonly Dictionary<Type, List<Type>> skippedNonGenericDecorators =
+            new Dictionary<Type, List<Type>>();
 
         /// <summary>
         /// Registers all concrete, non-generic, public and internal types in the given set of
@@ -126,25 +127,31 @@ namespace SimpleInjector
         /// <exception cref="InvalidOperationException">Thrown when the given set of 
         /// <paramref name="assemblies"/> contain multiple types that implement the same 
         /// closed generic version of the given <paramref name="openGenericServiceType"/>.</exception>
-        public void Register(Type openGenericServiceType, IEnumerable<Assembly> assemblies, Lifestyle lifestyle)
+        public void Register(
+            Type openGenericServiceType, IEnumerable<Assembly> assemblies, Lifestyle lifestyle)
         {
             Requires.IsNotNull(openGenericServiceType, nameof(openGenericServiceType));
             Requires.IsNotNull(lifestyle, nameof(lifestyle));
             Requires.IsNotNull(assemblies, nameof(assemblies));
-            Requires.IsGenericType(openGenericServiceType, nameof(openGenericServiceType),
+
+            Requires.IsGenericType(
+                openGenericServiceType,
+                nameof(openGenericServiceType),
                 guidance: StringResources.SuppliedTypeIsNotGenericExplainingAlternativesWithAssemblies);
+
             Requires.IsNotPartiallyClosed(openGenericServiceType, nameof(openGenericServiceType));
-            Requires.IsOpenGenericType(openGenericServiceType, nameof(openGenericServiceType),
+
+            Requires.IsOpenGenericType(
+                openGenericServiceType,
+                nameof(openGenericServiceType),
                 guidance: StringResources.SuppliedTypeIsNotOpenGenericExplainingAlternativesWithAssemblies);
 
-            Type[] skippedDecorators;
-            
-            Type[] implementationTypes = this.GetNonGenericTypesToRegisterForOneToOneMapping(
-                openGenericServiceType, assemblies, out skippedDecorators);
+            var results =
+                this.GetNonGenericTypesToRegisterForOneToOneMapping(openGenericServiceType, assemblies);
 
-            this.Register(openGenericServiceType, implementationTypes, lifestyle);
+            this.Register(openGenericServiceType, results.ImplementationTypes, lifestyle);
 
-            this.AddSkippedDecorators(openGenericServiceType, skippedDecorators);
+            this.AddSkippedDecorators(openGenericServiceType, results.SkippedDecorators);
         }
 
         /// <summary>
@@ -183,23 +190,36 @@ namespace SimpleInjector
         /// <exception cref="InvalidOperationException">Thrown when the given set of 
         /// <paramref name="implementationTypes"/> contain multiple types that implement the same 
         /// closed generic version of the given <paramref name="openGenericServiceType"/>.</exception>
-        public void Register(Type openGenericServiceType, IEnumerable<Type> implementationTypes, Lifestyle lifestyle)
+        public void Register(
+            Type openGenericServiceType, IEnumerable<Type> implementationTypes, Lifestyle lifestyle)
         {
             Requires.IsNotNull(openGenericServiceType, nameof(openGenericServiceType));
             Requires.IsNotNull(lifestyle, nameof(lifestyle));
             Requires.IsNotNull(implementationTypes, nameof(implementationTypes));
-            Requires.IsGenericType(openGenericServiceType, nameof(openGenericServiceType),
+
+            Requires.IsGenericType(
+                openGenericServiceType,
+                nameof(openGenericServiceType),
                 guidance: StringResources.SuppliedTypeIsNotGenericExplainingAlternativesWithTypes);
+
             Requires.IsNotPartiallyClosed(openGenericServiceType, nameof(openGenericServiceType));
-            Requires.IsOpenGenericType(openGenericServiceType, nameof(openGenericServiceType),
+
+            Requires.IsOpenGenericType(
+                openGenericServiceType,
+                paramName: nameof(openGenericServiceType),
                 guidance: StringResources.SuppliedTypeIsNotOpenGenericExplainingAlternativesWithTypes);
 
             implementationTypes = implementationTypes.Distinct().ToArray();
 
             Requires.DoesNotContainNullValues(implementationTypes, nameof(implementationTypes));
-            Requires.CollectionDoesNotContainOpenGenericTypes(implementationTypes, nameof(implementationTypes));
-            Requires.ServiceIsAssignableFromImplementations(openGenericServiceType, implementationTypes,
-                nameof(implementationTypes), typeCanBeServiceType: false);
+            Requires.CollectionDoesNotContainOpenGenericTypes(
+                implementationTypes, nameof(implementationTypes));
+
+            Requires.ServiceIsAssignableFromImplementations(
+                openGenericServiceType,
+                implementationTypes,
+                paramName: nameof(implementationTypes),
+                typeCanBeServiceType: false);
 
             var mappings =
                 from mapping in BatchMapping.Build(openGenericServiceType, implementationTypes)
@@ -272,9 +292,11 @@ namespace SimpleInjector
         /// <param name="assemblies">A list of assemblies that will be searched.</param>
         /// <exception cref="ArgumentNullException">Thrown when one of the supplied arguments contain a null
         /// reference (Nothing in VB).</exception>
+        [Obsolete("Please use Container." + nameof(Container.Collection) + "." +
+            nameof(ContainerCollectionRegistrator.Register) + " instead.", error: false)]
         public void RegisterCollection<TService>(IEnumerable<Assembly> assemblies) where TService : class
         {
-            this.RegisterCollection(typeof(TService), assemblies);
+            this.Collection.Register<TService>(assemblies);
         }
 
         /// <summary>
@@ -294,9 +316,11 @@ namespace SimpleInjector
         /// <param name="assemblies">A list of assemblies that will be searched.</param>
         /// <exception cref="ArgumentNullException">Thrown when one of the supplied arguments contain a null
         /// reference (Nothing in VB).</exception>
+        [Obsolete("Please use Container." + nameof(Container.Collection) + "." +
+            nameof(ContainerCollectionRegistrator.Register) + " instead.", error: false)]
         public void RegisterCollection(Type serviceType, params Assembly[] assemblies)
         {
-            this.RegisterCollection(serviceType, (IEnumerable<Assembly>)assemblies);
+            this.Collection.Register(serviceType, assemblies);
         }
 
         /// <summary>
@@ -316,11 +340,86 @@ namespace SimpleInjector
         /// <param name="assemblies">A list of assemblies that will be searched.</param>
         /// <exception cref="ArgumentNullException">Thrown when one of the supplied arguments contain a null
         /// reference (Nothing in VB).</exception>
+        [Obsolete("Please use Container." + nameof(Container.Collection) + "." +
+            nameof(ContainerCollectionRegistrator.Register) + " instead.", error: false)]
         public void RegisterCollection(Type serviceType, IEnumerable<Assembly> assemblies)
         {
-            var compositesExcluded = new TypesToRegisterOptions { IncludeComposites = false };
-            var types = this.GetTypesToRegister(serviceType, assemblies, compositesExcluded);
-            this.RegisterCollection(serviceType, types);
+            this.Collection.Register(serviceType, assemblies);
+        }
+
+        /// <summary>
+        /// Returns all concrete non-generic types that are located in the supplied <paramref name="assemblies"/> 
+        /// and implement or inherit from the supplied <typeparamref name="TService"/>. 
+        /// </summary>
+        /// <remarks>
+        /// Use this method when you need influence the types that are registered using 
+        /// <see cref="ContainerCollectionRegistrator.Register(Type, Assembly[])">Container.Collections.Register</see>. 
+        /// The <b>Collections.Register</b> overloads that take a collection of <see cref="Assembly"/> 
+        /// objects use this method internally to get the list of types that need to be registered. Instead of
+        /// calling such overload, you can call an overload that takes a list of <see cref="System.Type"/> objects 
+        /// and pass in a filtered result from this <b>GetTypesToRegister</b> method.
+        /// <code lang="cs"><![CDATA[
+        /// var container = new Container();
+        /// 
+        /// IEnumerable<Assembly> assemblies = new[] { typeof(ILogger).Assembly };
+        /// var types = container.GetTypesToRegister<ILogger>(assemblies)
+        ///     .Where(type => type.IsPublic);
+        /// 
+        /// container.Collections.Register<ILogger>(types);
+        /// ]]></code>
+        /// This example calls the <b>GetTypesToRegister</b> method to request a list of concrete implementations
+        /// of the <b>ILogger</b> interface from the assembly of that interface. After that
+        /// all internal types are filtered out. This list is supplied to the
+        /// <see cref="ContainerCollectionRegistrator.Register{TService}(IEnumerable{Type})">Collections.Register&lt;TService&gt;(IEnumerable&lt;Type&gt;)</see>
+        /// overload to finish the registration.
+        /// </remarks>
+        /// <typeparam name="TService">The base type or interface to find derived types for.</typeparam>
+        /// <param name="assemblies">A list of assemblies that will be searched.</param>
+        /// <returns>A collection of types.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when one of the arguments contain a null reference 
+        /// (Nothing in VB).</exception>
+        /// <returns>A collection of types.</returns>
+        public IEnumerable<Type> GetTypesToRegister<TService>(IEnumerable<Assembly> assemblies)
+        {
+            return this.GetTypesToRegister(typeof(TService), assemblies, new TypesToRegisterOptions());
+        }
+
+        /// <summary>
+        /// Returns all concrete non-generic types that are located in the supplied <paramref name="assemblies"/> 
+        /// and implement or inherit from the supplied <typeparamref name="TService"/>. 
+        /// </summary>
+        /// <remarks>
+        /// Use this method when you need influence the types that are registered using
+        /// <see cref="ContainerCollectionRegistrator.Register(Type, Assembly[])">Container.Collections.Register</see>. 
+        /// The <b>Collections.Register</b> overloads that take a collection of <see cref="Assembly"/> 
+        /// objects use this method internally to get the list of types that need to be registered. Instead of
+        /// calling such overload, you can call an overload that takes a list of <see cref="System.Type"/> objects 
+        /// and pass in a filtered result from this <b>GetTypesToRegister</b> method.
+        /// <code lang="cs"><![CDATA[
+        /// var container = new Container();
+        /// 
+        /// var types = container.GetTypesToRegister<ILogger>(
+        ///     typeof(ILogger).Assembly,
+        ///     typeof(FileLogger).Assembly)
+        ///     .Where(type => type.IsPublic);
+        /// 
+        /// container.Collections.Register<ILogger>(types);
+        /// ]]></code>
+        /// This example calls the <b>GetTypesToRegister</b> method to request a list of concrete implementations
+        /// of the <b>ILogger</b> interface from the assembly of that interface. After that
+        /// all internal types are filtered out. This list is supplied to the
+        /// <see cref="ContainerCollectionRegistrator.Register{TService}(IEnumerable{TService})">Container.Collections.Register&lt;TService&gt;(IEnumerable&lt;Type&gt;)</see>
+        /// overload to finish the registration.
+        /// </remarks>
+        /// <typeparam name="TService">The base type or interface to find derived types for.</typeparam>
+        /// <param name="assemblies">A list of assemblies that will be searched.</param>
+        /// <returns>A collection of types.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when one of the arguments contain a null reference 
+        /// (Nothing in VB).</exception>
+        /// <returns>A collection of types.</returns>
+        public IEnumerable<Type> GetTypesToRegister<TService>(params Assembly[] assemblies)
+        {
+            return this.GetTypesToRegister(typeof(TService), assemblies, new TypesToRegisterOptions());
         }
 
         /// <summary>
@@ -330,17 +429,57 @@ namespace SimpleInjector
         /// </summary>
         /// <remarks>
         /// Use this method when you need influence the types that are registered using 
-        /// <see cref="Register(System.Type, IEnumerable{System.Reflection.Assembly})">Register</see>. 
+        /// <see cref="Register(System.Type, IEnumerable{System.Reflection.Assembly})">Register</see> or
+        /// <see cref="ContainerCollectionRegistrator.Register(Type, Assembly[])">Collections.Register</see>. 
         /// The <b>Register</b> overloads that take a collection of <see cref="Assembly"/> 
         /// objects use this method internally to get the list of types that need to be registered. Instead of
-        /// calling  such overload, you can call an overload that takes a list of <see cref="System.Type"/> objects 
-        /// and pass  in a filtered result from this <b>GetTypesToRegister</b> method.
+        /// calling such overload, you can call an overload that takes a list of <see cref="System.Type"/> objects 
+        /// and pass in a filtered result from this <b>GetTypesToRegister</b> method.
         /// <code lang="cs"><![CDATA[
         /// var container = new Container();
         /// 
         /// var assemblies = new[] { typeof(ICommandHandler<>).Assembly };
         /// var types = container.GetTypesToRegister(typeof(ICommandHandler<>), assemblies)
-        ///     .Where(type => !type.IsPublic);
+        ///     .Where(type => type.IsPublic);
+        /// 
+        /// container.Register(typeof(ICommandHandler<>), types);
+        /// ]]></code>
+        /// This example calls the <b>GetTypesToRegister</b> method to request a list of concrete implementations
+        /// of the <b>ICommandHandler&lt;T&gt;</b> interface from the assembly of that interface. After that
+        /// all internal types are filtered out. This list is supplied to the
+        /// <see cref="Container.Register(System.Type,IEnumerable{System.Type})">Register(Type, IEnumerable&lt;Type&gt;)</see>
+        /// overload to finish the registration.
+        /// </remarks>
+        /// <param name="serviceType">The base type or interface to find derived types for. This can be both
+        /// a non-generic and open-generic type.</param>
+        /// <param name="assemblies">A list of assemblies that will be searched.</param>
+        /// <returns>A collection of types.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when one of the arguments contain a null reference 
+        /// (Nothing in VB).</exception>
+        public IEnumerable<Type> GetTypesToRegister(Type serviceType, params Assembly[] assemblies)
+        {
+            return this.GetTypesToRegister(serviceType, assemblies, new TypesToRegisterOptions());
+        }
+
+        /// <summary>
+        /// Returns all concrete non-generic types that are located in the supplied <paramref name="assemblies"/> 
+        /// and implement or inherit from the supplied <paramref name="serviceType"/>. 
+        /// <paramref name="serviceType"/> can be an open-generic type.
+        /// </summary>
+        /// <remarks>
+        /// Use this method when you need influence the types that are registered using 
+        /// <see cref="Register(System.Type, IEnumerable{System.Reflection.Assembly})">Register</see> or
+        /// <see cref="ContainerCollectionRegistrator.Register(Type, Assembly[])">Collections.Register</see>. 
+        /// The <b>Register</b> overloads that take a collection of <see cref="Assembly"/> 
+        /// objects use this method internally to get the list of types that need to be registered. Instead of
+        /// calling such overload, you can call an overload that takes a list of <see cref="System.Type"/> objects 
+        /// and pass in a filtered result from this <b>GetTypesToRegister</b> method.
+        /// <code lang="cs"><![CDATA[
+        /// var container = new Container();
+        /// 
+        /// var assemblies = new[] { typeof(ICommandHandler<>).Assembly };
+        /// var types = container.GetTypesToRegister(typeof(ICommandHandler<>), assemblies)
+        ///     .Where(type => type.IsPublic);
         /// 
         /// container.Register(typeof(ICommandHandler<>), types);
         /// ]]></code>
@@ -379,7 +518,7 @@ namespace SimpleInjector
         /// var assemblies = new[] { typeof(ICommandHandler<>).Assembly };
         /// var options = new TypesToRegisterOptions { IncludeGenericTypeDefinitions: true };
         /// var types = container.GetTypesToRegister(typeof(ICommandHandler<>), assemblies, options)
-        ///     .Where(type => !type.IsPublic);
+        ///     .Where(type => type.IsPublic);
         /// 
         /// container.Register(typeof(ICommandHandler<>), types);
         /// ]]></code>
@@ -396,14 +535,20 @@ namespace SimpleInjector
         /// <returns>A collection of types.</returns>
         /// <exception cref="ArgumentNullException">Thrown when one of the arguments contain a null reference 
         /// (Nothing in VB).</exception>
-        public IEnumerable<Type> GetTypesToRegister(Type serviceType, IEnumerable<Assembly> assemblies,
-            TypesToRegisterOptions options)
+        public IEnumerable<Type> GetTypesToRegister(
+            Type serviceType, IEnumerable<Assembly> assemblies, TypesToRegisterOptions options)
         {
             Requires.IsNotNull(serviceType, nameof(serviceType));
             Requires.IsNotNull(assemblies, nameof(assemblies));
             Requires.IsNotNull(options, nameof(options));
             Requires.IsNotPartiallyClosed(serviceType, nameof(serviceType));
 
+            return this.GetTypesToRegisterInternal(serviceType, assemblies, options);
+        }
+
+        private Type[] GetTypesToRegisterInternal(
+            Type serviceType, IEnumerable<Assembly> assemblies, TypesToRegisterOptions options)
+        {
             var types =
                 from assembly in assemblies.Distinct()
                 where !assembly.IsDynamic
@@ -419,19 +564,23 @@ namespace SimpleInjector
             return types.ToArray();
         }
 
-        private Type[] GetNonGenericTypesToRegisterForOneToOneMapping(Type openGenericServiceType,
-            IEnumerable<Assembly> assemblies, out Type[] skippedDecorators)
+        private NonGenericTypesToRegisterForOneToOneMappingResults
+            GetNonGenericTypesToRegisterForOneToOneMapping(
+                Type openGenericServiceType, IEnumerable<Assembly> assemblies)
         {
             var options = new TypesToRegisterOptions { IncludeDecorators = true };
 
-            var typesIncludingDecorators = this.GetTypesToRegister(openGenericServiceType, assemblies, options);
+            Type[] typesIncludingDecorators =
+                this.GetTypesToRegisterInternal(openGenericServiceType, assemblies, options);
 
-            var partitions = 
-                typesIncludingDecorators.Partition(type => this.IsDecorator(openGenericServiceType, type));
+            var partitions =
+                typesIncludingDecorators.Partition(type => !this.IsDecorator(openGenericServiceType, type));
 
-            skippedDecorators = partitions.Item1;
-
-            return partitions.Item2;
+            return new NonGenericTypesToRegisterForOneToOneMappingResults
+            {
+                ImplementationTypes = partitions.Item1,
+                SkippedDecorators = partitions.Item2
+            };
         }
 
         private bool IsDecorator(Type openGenericServiceType, Type implemenationType)
@@ -526,15 +675,20 @@ namespace SimpleInjector
 
             private static void RequiresNoDuplicateRegistrations(BatchMapping[] mappings)
             {
-                // Use of 'Count() > 1' instead of 'Skip(1).Any()' is not a performance problem here, and is actually
-                // faster in this case, because Enumerable.GroupBy returns an instance that implements ICollection<T>.
+                // Use of 'Count() > 1' instead of 'Skip(1).Any()' is not a performance problem here, and is
+                // actually faster in this case, because Enumerable.GroupBy returns an instance that
+                // implements ICollection<T>.
 #pragma warning disable RCS1083
                 var duplicateServiceTypes =
                     from mapping in mappings
                     from closedServiceType in mapping.ClosedServiceTypes
                     group mapping.ImplementationType by closedServiceType into serviceTypeGroup
                     where serviceTypeGroup.Count() > 1
-                    select new { service = serviceTypeGroup.Key, implementations = serviceTypeGroup.ToArray() };
+                    select new
+                    {
+                        service = serviceTypeGroup.Key,
+                        implementations = serviceTypeGroup.ToArray()
+                    };
 
                 var invalidRegistration = duplicateServiceTypes.FirstOrDefault();
 
@@ -545,6 +699,12 @@ namespace SimpleInjector
                             invalidRegistration.service, invalidRegistration.implementations));
                 }
             }
+        }
+
+        private class NonGenericTypesToRegisterForOneToOneMappingResults
+        {
+            public List<Type> SkippedDecorators { get; set; }
+            public List<Type> ImplementationTypes { get; set; }
         }
     }
 }

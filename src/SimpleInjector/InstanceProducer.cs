@@ -1,7 +1,7 @@
 ﻿#region Copyright Simple Injector Contributors
 /* The Simple Injector is an easy-to-use Inversion of Control library for .NET
  * 
- * Copyright (c) 2013 - 2014 Simple Injector Contributors
+ * Copyright (c) 2013 - 2019 Simple Injector Contributors
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
  * associated documentation files (the "Software"), to deal in the Software without restriction, including 
@@ -82,13 +82,12 @@ namespace SimpleInjector
     /// ]]></code>
     /// </example>
     [DebuggerTypeProxy(typeof(InstanceProducerDebugView))]
-    [DebuggerDisplay("{" + nameof(DebuggerDisplay) + ", nq}")]
+    [DebuggerDisplay("{" + nameof(InstanceProducer.DebuggerDisplay) + ", nq}")]
     public class InstanceProducer
     {
         internal static readonly IEqualityComparer<InstanceProducer> EqualityComparer =
             ReferenceEqualityComparer<InstanceProducer>.Instance;
 
-        private static readonly Action[] NoVerifiers = Helpers.Array<Action>.Empty;
         private static readonly Predicate<PredicateContext> Always = context => true;
 
         private readonly object locker = new object();
@@ -99,7 +98,7 @@ namespace SimpleInjector
         private bool? isValid = true;
         private Lifestyle overriddenLifestyle;
         private ReadOnlyCollection<KnownRelationship> knownRelationships;
-        private List<Action> verifiers;
+        private List<Action<Scope>> verifiers;
         private List<InstanceProducer> wrappedProducers;
 
         /// <summary>Initializes a new instance of the <see cref="InstanceProducer"/> class.</summary>
@@ -108,11 +107,12 @@ namespace SimpleInjector
         public InstanceProducer(Type serviceType, Registration registration)
             : this(serviceType, registration, ShouldBeRegisteredAsAnExternalProducer(registration))
         {
-            Requires.ServiceIsAssignableFromImplementation(serviceType, registration.ImplementationType,
-                nameof(serviceType));
+            Requires.ServiceIsAssignableFromImplementation(
+                serviceType, registration.ImplementationType, nameof(serviceType));
         }
 
-        internal InstanceProducer(Type serviceType, Registration registration, Predicate<PredicateContext> predicate)
+        internal InstanceProducer(
+            Type serviceType, Registration registration, Predicate<PredicateContext> predicate)
             : this(serviceType, registration)
         {
             this.Predicate = predicate ?? Always;
@@ -212,10 +212,13 @@ namespace SimpleInjector
 
         internal bool VerifiersAreSuccessfullyCalled { get; private set; }
 
-        internal string DebuggerDisplay => string.Format(CultureInfo.InvariantCulture,
+        internal string DebuggerDisplay => string.Format(
+            CultureInfo.InvariantCulture,
             "{0} = {1}, {2} = {3}",
-            nameof(this.ServiceType), this.ServiceType.ToFriendlyName(),
-            nameof(this.Lifestyle), this.Lifestyle.Name);
+            nameof(this.ServiceType),
+            this.ServiceType.ToFriendlyName(),
+            nameof(this.Lifestyle),
+            this.Lifestyle.Name);
 
         internal IEnumerable<InstanceProducer> SelfAndWrappedProducers =>
             this.wrappedProducers == null ? this.Self : this.wrappedProducers.Concat(this.Self);
@@ -232,7 +235,8 @@ namespace SimpleInjector
         /// <param name="expression">The expression that describes the instance to be produced.</param>
         /// <param name="container">The <see cref="Container"/> instance for this registration.</param>
         /// <returns>A new <see cref="InstanceProducer"/> that describes the expression.</returns>
-        public static InstanceProducer FromExpression(Type serviceType, Expression expression, Container container)
+        public static InstanceProducer FromExpression(
+            Type serviceType, Expression expression, Container container)
         {
             Requires.IsNotNull(serviceType, nameof(serviceType));
             Requires.IsNotNull(expression, nameof(expression));
@@ -243,7 +247,8 @@ namespace SimpleInjector
 
         /// <summary>Produces an instance.</summary>
         /// <returns>An instance. Will never return null.</returns>
-        /// <exception cref="ActivationException">When the instance could not be retrieved or is null.</exception>
+        /// <exception cref="ActivationException">When the instance could not be retrieved or is null.
+        /// </exception>
         [SuppressMessage("Microsoft.Design", "CA1024:UsePropertiesWhereAppropriate", Justification =
             "A property is not appropriate, because get instance could possibly be a heavy operation.")]
         public object GetInstance()
@@ -284,7 +289,7 @@ namespace SimpleInjector
 
         /// <summary>
         /// Builds an expression that expresses the intent to get an instance by the current producer. A call 
-        /// to this method locks the container. No new registrations can't be made after a call to this method.
+        /// to this method locks the container. New registrations can't be made after a call to this method.
         /// </summary>
         /// <returns>An Expression.</returns>
         public Expression BuildExpression()
@@ -363,15 +368,33 @@ namespace SimpleInjector
         /// <see cref="GetInstance"/> or <see cref="BuildExpression"/> on an instance that depends on this
         /// instance, or by calling <see cref="SimpleInjector.Container.Verify()">Verify</see> on the container.
         /// </exception>
-        public string VisualizeObjectGraph()
+        public string VisualizeObjectGraph() => this.VisualizeObjectGraph(new VisualizationOptions());
+
+        /// <summary>
+        /// Builds a string representation of the object graph with the current instance as root of the
+        /// graph.
+        /// </summary>
+        /// <param name="options">The various visualization options for building a string representation of
+        /// the object graph.</param>
+        /// <returns>A string representation of the object graph.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when this method is called before 
+        /// <see cref="GetInstance"/> or <see cref="BuildExpression"/> have been called. These calls can be
+        /// done directly and explicitly by the user on this instance, indirectly by calling
+        /// <see cref="GetInstance"/> or <see cref="BuildExpression"/> on an instance that depends on this
+        /// instance, or by calling <see cref="SimpleInjector.Container.Verify()">Verify</see> on the container.
+        /// </exception>
+        /// <exception cref="NullReferenceException">Thrown when options is null.</exception>
+        public string VisualizeObjectGraph(VisualizationOptions options)
         {
+            Requires.IsNotNull(options, nameof(options));
+
             if (!this.IsExpressionCreated)
             {
                 throw new InvalidOperationException(
                     StringResources.VisualizeObjectGraphShouldBeCalledAfterTheExpressionIsCreated());
             }
 
-            return InstanceProducerVisualizer.VisualizeIndentedObjectGraph(this);
+            return InstanceProducerVisualizer.VisualizeIndentedObjectGraph(this, options);
         }
 
         // Throws an InvalidOperationException on failure.
@@ -383,8 +406,9 @@ namespace SimpleInjector
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(StringResources.ConfigurationInvalidCreatingInstanceFailed(
-                    this.ServiceType, ex), ex);
+                throw new InvalidOperationException(
+                    StringResources.ConfigurationInvalidCreatingInstanceFailed(this.ServiceType, ex),
+                    ex);
             }
         }
 
@@ -400,8 +424,10 @@ namespace SimpleInjector
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(StringResources.ConfigurationInvalidCreatingInstanceFailed(
-                    this.Registration.ImplementationType, ex), ex);
+                throw new InvalidOperationException(
+                    StringResources.ConfigurationInvalidCreatingInstanceFailed(
+                        this.Registration.ImplementationType, ex),
+                    ex);
             }
 
             return instance;
@@ -410,19 +436,19 @@ namespace SimpleInjector
         // A verifier is an Action delegate that will be called during the object creation step in the
         // verification process (when the user calls Verify()) to enable verification of the whole object 
         // graph.
-        internal void AddVerifier(Action action)
+        internal void AddVerifier(Action<Scope> action)
         {
             lock (this.locker)
             {
                 if (this.verifiers == null)
                 {
-                    this.verifiers = new List<Action>();
+                    this.verifiers = new List<Action<Scope>>();
                 }
 
                 this.verifiers.Add(action);
             }
         }
-        
+
         internal void AddProducerToVerify(InstanceProducer currentProducer)
         {
             lock (this.locker)
@@ -438,7 +464,8 @@ namespace SimpleInjector
 
         internal void ReplaceRelationships(IEnumerable<KnownRelationship> relationships)
         {
-            this.knownRelationships = new ReadOnlyCollection<KnownRelationship>(relationships.Distinct().ToArray());
+            this.knownRelationships =
+                new ReadOnlyCollection<KnownRelationship>(relationships.Distinct().ToArray());
         }
 
         internal void EnsureTypeWillBeExplicitlyVerified()
@@ -446,29 +473,30 @@ namespace SimpleInjector
             this.isValid = null;
         }
 
-        internal void DoExtraVerfication()
+        internal void DoExtraVerfication(Scope scope)
         {
             try
             {
                 foreach (var verify in this.GetVerifiers())
                 {
-                    verify();
+                    verify(scope);
                 }
 
                 this.VerifiersAreSuccessfullyCalled = true;
             }
             catch (Exception ex)
             {
-                throw new InvalidOperationException(StringResources.ConfigurationInvalidCreatingInstanceFailed(
-                    this.ServiceType, ex), ex);
+                throw new InvalidOperationException(
+                    StringResources.ConfigurationInvalidCreatingInstanceFailed(this.ServiceType, ex),
+                    ex);
             }
         }
 
-        private Action[] GetVerifiers()
+        private Action<Scope>[] GetVerifiers()
         {
             lock (this.locker)
             {
-                return this.verifiers != null ? this.verifiers.ToArray() : NoVerifiers;
+                return this.verifiers?.ToArray() ?? Helpers.Array<Action<Scope>>.Empty;
             }
         }
 
@@ -501,7 +529,7 @@ namespace SimpleInjector
         {
             if (!this.Container.Options.SuppressLifestyleMismatchVerification)
             {
-                var error = LifestyleMismatchAnalyzer.Instance.Analyze(this.SelfAndWrappedProducers)
+                var error = new LifestyleMismatchAnalyzer().Analyze(this.SelfAndWrappedProducers)
                     .Cast<LifestyleMismatchDiagnosticResult>()
                     .FirstOrDefault();
 
@@ -526,11 +554,12 @@ namespace SimpleInjector
                     this.Registration));
             }
 
-            var e = new ExpressionBuiltEventArgs(this.ServiceType, expression);
-
-            e.Lifestyle = this.Lifestyle;
-            e.InstanceProducer = this;
-            e.ReplacedRegistration = this.Registration;
+            var e = new ExpressionBuiltEventArgs(this.ServiceType, expression)
+            {
+                Lifestyle = this.Lifestyle,
+                InstanceProducer = this,
+                ReplacedRegistration = this.Registration
+            };
 
             this.Container.OnExpressionBuilt(e, this);
 
@@ -550,8 +579,9 @@ namespace SimpleInjector
 
         private bool MustWrapThrownException(Exception ex)
         {
-            return this.IsContainerAutoRegistered || this.Registration.WrapsInstanceCreationDelegate ||
-                !(ex is ActivationException);
+            return this.IsContainerAutoRegistered 
+                || this.Registration.WrapsInstanceCreationDelegate
+                || !(ex is ActivationException);
         }
 
         private string BuildActivationExceptionMessage(Exception innerException)
@@ -563,7 +593,7 @@ namespace SimpleInjector
             }
             else if (this.Registration.WrapsInstanceCreationDelegate)
             {
-                return StringResources.DelegateForTypeThrewAnException(this.ServiceType) + " " + 
+                return StringResources.DelegateForTypeThrewAnException(this.ServiceType) + " " +
                     innerException.Message;
             }
             else
@@ -589,10 +619,7 @@ namespace SimpleInjector
 #endif
         private void CheckForCyclicDependencies()
         {
-            if (this.validator != null)
-            {
-                this.validator.Check();
-            }
+            this.validator?.Check();
         }
 
         // This method will be inlined by the JIT.
@@ -621,10 +648,7 @@ namespace SimpleInjector
 #endif
         private void ResetCyclicDependencyValidator()
         {
-            if (this.validator != null)
-            {
-                this.validator.Reset();
-            }
+            this.validator?.Reset();
         }
 
         private Exception GetExceptionIfInvalid()
@@ -677,7 +701,7 @@ namespace SimpleInjector
             // graph to be shown in compact form in the debugger in-line value field, but still allow the
             // complete formatted object graph to be shown when the user opens the text visualizer.
             [DebuggerDisplay(value: "{" + nameof(TruncatedDependencyGraph) + ", nq}")]
-            public string DependencyGraph => this.producer.VisualizeIndentedObjectGraph();
+            public string DependencyGraph => this.producer.VisualizeIndentedObjectGraph(new VisualizationOptions());
 
             [DebuggerHidden]
             private string TruncatedDependencyGraph => this.producer.VisualizeInlinedAndTruncatedObjectGraph(160);

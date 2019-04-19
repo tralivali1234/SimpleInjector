@@ -9,7 +9,7 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
     using SimpleInjector.Diagnostics.Tests.Unit.Helpers;
     using SimpleInjector.Tests.Unit;
 
-    public interface IGenericPlugin<T> 
+    public interface IGenericPlugin<T>
     {
     }
 
@@ -100,7 +100,7 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
             // Assert
             Assert.AreEqual(1, results.Length);
             Assert.AreEqual(typeof(PluginWith8Dependencies).Name, results[0].Name);
-            Assert.AreEqual(typeof(PluginWith8Dependencies).Name + 
+            Assert.AreEqual(typeof(PluginWith8Dependencies).Name +
                 " has 8 dependencies which might indicate a SRP violation.",
                 results[0].Description);
         }
@@ -154,7 +154,7 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
             Assert_AreEqual(expectedImplementationTypeInformation, violationInformation[0]);
             Assert_AreEqual(expectedDependenciesInformation, violationInformation[1], validateValue: false);
         }
-        
+
         [TestMethod]
         public void Analyze_OnConfigurationWithMultipleViolations_ReturnsThoseTwoViolations()
         {
@@ -178,9 +178,9 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
                 plugin1.Description);
 
             var plugin2 = results.Single(r => r.Name == typeof(AnotherPluginWith8Dependencies).Name);
-            
+
             Assert.AreEqual(
-                typeof(AnotherPluginWith8Dependencies).Name + 
+                typeof(AnotherPluginWith8Dependencies).Name +
                 " has 8 dependencies which might indicate a SRP violation.",
                 plugin2.Description);
         }
@@ -192,7 +192,7 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
             Container container = CreateContainerWithRegistration<IPlugin, PluginWith8Dependencies>();
 
             container.RegisterDecorator(typeof(IPlugin), typeof(PluginDecoratorWith8Dependencies));
-            
+
             container.Verify();
 
             var ip = container.GetRegistration(typeof(IPlugin));
@@ -226,7 +226,7 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
 
             // Assert
             Assert.AreEqual("IPlugin", item.Name);
-            Assert.AreEqual(typeof(PluginWith8Dependencies).Name + 
+            Assert.AreEqual(typeof(PluginWith8Dependencies).Name +
                 " has 8 dependencies which might indicate a SRP violation.",
                 item.Description);
         }
@@ -250,7 +250,7 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
 
             // Assert
             Assert.AreEqual("IPlugin", item.Name);
-            Assert.AreEqual(typeof(PluginDecoratorWith8Dependencies).Name + 
+            Assert.AreEqual(typeof(PluginDecoratorWith8Dependencies).Name +
                 " has 8 dependencies which might indicate a SRP violation.",
                 item.Description);
         }
@@ -261,7 +261,7 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
             // Arrange
             Container container = CreateContainerWithRegistrations(Type.EmptyTypes);
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginWith8Dependencies) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginWith8Dependencies) });
 
             container.Verify();
 
@@ -287,7 +287,7 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
             container.RegisterDecorator(typeof(IPlugin), typeof(PluginDecoratorWith5Dependencies));
 
             // Non of these types have too many dependencies.
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl), typeof(SomePluginImpl) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(SomePluginImpl) });
 
             container.Verify();
 
@@ -314,7 +314,7 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
             container.RegisterDecorator(typeof(IPlugin), typeof(PluginDecoratorWith8Dependencies));
 
             // Non of these types have too many dependencies.
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl), typeof(SomePluginImpl) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(SomePluginImpl) });
 
             container.Verify();
 
@@ -352,7 +352,7 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
 
             return container;
         }
-        
+
         private static void Assert_AreEqual(DebuggerViewItem expected, DebuggerViewItem actual,
             bool validateValue = true)
         {
@@ -365,7 +365,7 @@ namespace SimpleInjector.Diagnostics.Tests.Unit
             }
         }
 
-        private static string Actual(SingleResponsibilityViolationDiagnosticResult[] results) => 
+        private static string Actual(SingleResponsibilityViolationDiagnosticResult[] results) =>
             "actual: " + string.Join(" - ", results.Select(r => r.Description));
     }
 }

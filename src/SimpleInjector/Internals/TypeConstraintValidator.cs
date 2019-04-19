@@ -86,8 +86,7 @@ namespace SimpleInjector.Internals
                 return false;
             }
 
-            bool isNullable = this.Mapping.ConcreteType.IsGenericType() &&
-                this.Mapping.ConcreteType.GetGenericTypeDefinition() == typeof(Nullable<>);
+            bool isNullable = typeof(Nullable<>).IsGenericTypeDefinitionOf(this.Mapping.ConcreteType);
 
             return !isNullable;
         }
@@ -142,8 +141,8 @@ namespace SimpleInjector.Internals
         private bool MappingConcreteTypeHasConstraint(GenericParameterAttributes constraint) =>
             GenericParameterHasConstraint(this.Mapping.ConcreteType, constraint);
 
-        private static bool GenericParameterHasConstraint(Type genericParameter, 
-            GenericParameterAttributes constraint)
+        private static bool GenericParameterHasConstraint(
+            Type genericParameter, GenericParameterAttributes constraint)
         {
             if (!genericParameter.IsGenericParameter)
             {

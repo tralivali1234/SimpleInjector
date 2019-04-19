@@ -41,13 +41,13 @@ namespace SimpleInjector.Integration.WebApi
         /// creates a new <see cref="AsyncScopedLifestyle"/> scope before returning. 
         /// This is the default value.
         /// </summary>
-        UseAmbientScope,
+        UseAmbientScope = 0,
 
         /// <summary>
         /// A new <see cref="AsyncScopedLifestyle"/> scope  is always created by 
         /// <see cref="IDependencyResolver.BeginScope"/> before returning.
         /// </summary>
-        RequiresNew
+        RequiresNew = 1
     }
 
     /// <summary>Simple Injector <see cref="IDependencyResolver"/> implementation.</summary>
@@ -129,8 +129,8 @@ namespace SimpleInjector.Integration.WebApi
             if (scopeOption < DependencyResolverScopeOption.UseAmbientScope ||
                 scopeOption > DependencyResolverScopeOption.RequiresNew)
             {
-                throw new System.ComponentModel.InvalidEnumArgumentException("scopeOption", (int)scopeOption,
-                    typeof(DependencyResolverScopeOption));
+                throw new System.ComponentModel.InvalidEnumArgumentException(
+                    "scopeOption", (int)scopeOption, typeof(DependencyResolverScopeOption));
             }
 
             this.scopeOption = scopeOption;

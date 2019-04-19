@@ -41,7 +41,6 @@
             container.Register<ILogger, ConsoleLogger>(Lifestyle.Singleton);
             container.RegisterDecorator<ILogger, LoggerDecorator>(Lifestyle.Transient);
 
-            // RealUserService depends on IUserRepository
             container.Register<ServiceWithDependency<ILogger>>(Lifestyle.Singleton);
 
             container.Verify(VerificationOption.VerifyOnly);
@@ -53,6 +52,33 @@
             Assert.AreEqual(
                 "ServiceWithDependency<ILogger> (Singleton) depends on ILogger implemented by " +
                 "LoggerDecorator (Transient).",
+                result.Description);
+        }
+
+        [TestMethod]
+        public void Analyze_ContainerWithOneMismatchCausedByDecoratorWrappedInScopedDecoratorProxy_ReturnsExpectedWarning()
+        {
+            // Arrange
+            var container = new Container();
+            container.Options.SuppressLifestyleMismatchVerification = true;
+
+            container.Register<ILogger, NullLogger>(Lifestyle.Transient);
+            container.RegisterDecorator<ILogger, LoggerDecorator>(Lifestyle.Singleton);
+
+            // ScopedLoggerDecoratorProxy depends on Func<Scope, ILogger>
+            container.RegisterDecorator<ILogger, ScopedLoggerDecoratorProxy>(Lifestyle.Singleton);
+
+            container.Register<ServiceWithDependency<ILogger>>(Lifestyle.Transient);
+
+            container.Verify(VerificationOption.VerifyOnly);
+
+            // Act
+            var result = Analyzer.Analyze(container).OfType<LifestyleMismatchDiagnosticResult>().Single();
+
+            // Assert
+            Assert.AreEqual(
+                "LoggerDecorator (Singleton) depends on ILogger implemented by " +
+                "NullLogger (Transient).",
                 result.Description);
         }
 
@@ -291,7 +317,7 @@
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ActivationException>(
-                "lifestyle mismatch is encountered",
+                "lifestyle mismatch",
                 action);
         }
 
@@ -312,11 +338,11 @@
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ActivationException>(
-                "lifestyle mismatch is encountered",
+                "lifestyle mismatch has been detected",
                 action);
         }
 
-        private static string Actual(LifestyleMismatchDiagnosticResult[] results) => 
+        private static string Actual(LifestyleMismatchDiagnosticResult[] results) =>
             "actual: " + string.Join(" - ", results.Select(r => r.Description));
     }
 }

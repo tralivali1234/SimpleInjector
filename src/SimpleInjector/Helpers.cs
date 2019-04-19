@@ -1,7 +1,7 @@
 ﻿#region Copyright Simple Injector Contributors
 /* The Simple Injector is an easy-to-use Inversion of Control library for .NET
  * 
- * Copyright (c) 2013-2015 Simple Injector Contributors
+ * Copyright (c) 2013-2018 Simple Injector Contributors
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
  * associated documentation files (the "Software"), to deal in the Software without restriction, including 
@@ -50,12 +50,15 @@ namespace SimpleInjector
         {
             var names = values.ToArray();
 
-            if (names.Length <= 1)
+            switch (names.Length)
             {
-                return names.FirstOrDefault() ?? string.Empty;
+                case 0: return string.Empty;
+                case 1: return names[0];
+                case 2: return names[0] + " and " + names[1];
+                default:
+                    // For three names or more, we use the Oxford comma.
+                    return string.Join(", ", names.Take(names.Length - 1)) + ", and " + names.Last();
             }
-
-            return string.Join(", ", names.Take(names.Length - 1)) + " and " + names.Last();
         }
 
         // This makes the collection immutable for the consumer. The creator might still be able to change
@@ -94,9 +97,7 @@ namespace SimpleInjector
         [DebuggerStepThrough]
         internal static TValue GetValueOrDefault<TKey, TValue>(this Dictionary<TKey, TValue> source, TKey key)
         {
-            TValue value;
-
-            source.TryGetValue(key, out value);
+            source.TryGetValue(key, out TValue value);
 
             return value;
         }
@@ -106,10 +107,10 @@ namespace SimpleInjector
             // This construct looks a bit weird, but prevents the collection from being iterated twice.
             bool collectionContainsNullElements = false;
 
-            ThrowWhenCollectionCanNotBeIterated(collection, serviceType, item =>
-            {
-                collectionContainsNullElements |= item == null;
-            });
+            ThrowWhenCollectionCanNotBeIterated(
+                collection,
+                serviceType,
+                item => collectionContainsNullElements |= item == null);
 
             ThrowWhenCollectionContainsNullElements(serviceType, collectionContainsNullElements);
         }
@@ -141,25 +142,32 @@ namespace SimpleInjector
         internal static IEnumerable CastCollection(IEnumerable collection, Type resultType)
         {
             // The collection is not a IEnumerable<[ServiceType]>. We wrap it in a 
-            // CastEnumerator<[ServiceType]> to be able to supply it to the RegisterCollection<T> method.
+            // CastEnumerator<[ServiceType]> to be able to supply it to the Collections.Register<T> method.
             var castMethod = typeof(Enumerable).GetMethod("Cast").MakeGenericMethod(resultType);
 
             return (IEnumerable)castMethod.Invoke(null, new[] { collection });
         }
 
         // Partitions a collection in two separate collections, based on the predicate.
-        internal static Tuple<T[], T[]> Partition<T>(this IEnumerable<T> collection, Predicate<T> predicate)
+        internal static Tuple<List<T>, List<T>> Partition<T>(this T[] collection, Predicate<T> predicate)
         {
-            var trueList = new List<T>();
+            // PERF: Assuming the predicate will return true most of the time.
+            var trueList = new List<T>(capacity: collection.Length);
             var falseList = new List<T>();
 
             foreach (T item in collection)
             {
-                List<T> list = predicate(item) ? trueList : falseList;
-                list.Add(item);
+                if (predicate(item))
+                {
+                    trueList.Add(item);
+                }
+                else
+                {
+                    falseList.Add(item);
+                }
             }
 
-            return Tuple.Create(trueList.ToArray(), falseList.ToArray());
+            return Tuple.Create(trueList, falseList);
         }
 
         internal static MethodInfo GetMethod(Expression<Action> methodCall) =>
@@ -172,12 +180,12 @@ namespace SimpleInjector
             ((NewExpression)constructorCall.Body).Constructor;
 
         private static IEnumerable<T> CreateReadOnlyCollection<T>(IEnumerable<T> collection) =>
-            RegisterCollectionEnumerable(collection);
+            Collections_Register_Enumerable(collection);
 
         // This method name does not describe what it does, but since the C# compiler will create a iterator
         // type named after this method, it allows us to return a type that has a nice name that will show up
         // during debugging.
-        private static IEnumerable<T> RegisterCollectionEnumerable<T>(IEnumerable<T> collection)
+        private static IEnumerable<T> Collections_Register_Enumerable<T>(IEnumerable<T> collection)
         {
             foreach (var item in collection)
             {
@@ -185,12 +193,13 @@ namespace SimpleInjector
             }
         }
 
-        private static void ThrowWhenCollectionCanNotBeIterated(IEnumerable collection, Type serviceType,
-            Action<object> itemProcessor)
+        private static void ThrowWhenCollectionCanNotBeIterated(
+            IEnumerable collection, Type serviceType, Action<object> itemProcessor)
         {
             try
             {
                 IEnumerator enumerator = collection.GetEnumerator();
+
                 try
                 {
                     // Just iterate the collection.
@@ -201,12 +210,7 @@ namespace SimpleInjector
                 }
                 finally
                 {
-                    var disposable = enumerator as IDisposable;
-
-                    if (disposable != null)
-                    {
-                        disposable.Dispose();
-                    }
+                    (enumerator as IDisposable)?.Dispose();
                 }
             }
             catch (Exception ex)

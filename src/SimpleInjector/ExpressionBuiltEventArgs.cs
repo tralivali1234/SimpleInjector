@@ -1,7 +1,7 @@
 ﻿#region Copyright Simple Injector Contributors
 /* The Simple Injector is an easy-to-use Inversion of Control library for .NET
  * 
- * Copyright (c) 2013 Simple Injector Contributors
+ * Copyright (c) 2013-2019 Simple Injector Contributors
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
  * associated documentation files (the "Software"), to deal in the Software without restriction, including 
@@ -38,7 +38,7 @@ namespace SimpleInjector
     /// <see cref="Expression"/> property to change the component that is currently 
     /// being built. 
     /// </summary>
-    [DebuggerDisplay(nameof(ExpressionBuiltEventArgs) + " ({" + nameof(DebuggerDisplay) + "), nq})")]
+    [DebuggerDisplay(nameof(ExpressionBuiltEventArgs) + " ({" + nameof(ExpressionBuiltEventArgs.DebuggerDisplay) + "), nq})")]
     public class ExpressionBuiltEventArgs : EventArgs
     {
         private Expression expression;
@@ -109,6 +109,17 @@ namespace SimpleInjector
         internal Registration ReplacedRegistration { get; set; }
 
         internal InstanceProducer InstanceProducer { get; set; }
+
+        // By storing the ServiceTypeDecoratorInfo as part of the ExpressionBuiltEventArgs instance, we allow
+        // all applied decorators on a single InstanceProducer to reuse this info object, which allows them to,
+        // among other things, to construct DecoratorPredicateContext objects.
+        // It seems a bit ugly to let ExpressionBuiltEventArgs reference the decorator sub system, but the
+        // (more decoupled) alternative would be to expose a Items Dictionary that can be used to add arbitrary
+        // items, such as an ServiceTypeDecoratorInfo. Although great, we don't need that flexibility, and the
+        // creation of a new Dictionary object for every InstanceProducer that gets a one or multiple decorators
+        // applied can cause quite a lot of memory overhead (an empty Dictionary takes roughly 60 bytes of
+        // memory in a 32bit process).
+        internal Decorators.ServiceTypeDecoratorInfo DecoratorInfo { get; set; }
 
         [SuppressMessage("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode",
             Justification = "This method is called by the debugger.")]

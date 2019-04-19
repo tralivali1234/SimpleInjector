@@ -181,12 +181,12 @@
             Lifestyle lifestyle = Lifestyle.Transient;
 
             // Act
-            Action action = () => lifestyle.CreateProducer(typeof(ICommandHandler<>), 
+            Action action = () => lifestyle.CreateProducer(typeof(ICommandHandler<>),
                 typeof(StubCommandHandler), container);
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
-                "The supplied type ICommandHandler<TCommand> is an open generic type.",
+                "The supplied type ICommandHandler<TCommand> is an open-generic type.",
                 action);
             AssertThat.ThrowsWithParamName("serviceType", action);
         }
@@ -204,11 +204,11 @@
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
-                "The supplied type NullCommandHandler<T> is an open generic type.",
+                "The supplied type NullCommandHandler<T> is an open-generic type.",
                 action);
             AssertThat.ThrowsWithParamName("implementationType", action);
         }
-        
+
         [TestMethod]
         public void CreateProducerTService_SuppliedWithOpenGenericImplementationType_ThrowsExpectedException()
         {
@@ -221,7 +221,7 @@
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
-                "The supplied type NullCommandHandler<T> is an open generic type.",
+                "The supplied type NullCommandHandler<T> is an open-generic type.",
                 action);
             AssertThat.ThrowsWithParamName("implementationType", action);
         }
@@ -238,7 +238,7 @@
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
-                "The supplied type NullCommandHandler<T> is an open generic type.",
+                "The supplied type NullCommandHandler<T> is an open-generic type.",
                 action);
             AssertThat.ThrowsWithParamName("concreteType", action);
         }
@@ -271,7 +271,7 @@
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
-                "The supplied type NullCommandHandler<T> is an open generic type.",
+                "The supplied type NullCommandHandler<T> is an open-generic type.",
                 action);
             AssertThat.ThrowsWithParamName("concreteType", action);
         }
@@ -288,7 +288,7 @@
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
-                "The supplied type ICommandHandler<TCommand> is an open generic type.",
+                "The supplied type ICommandHandler<TCommand> is an open-generic type.",
                 action);
             AssertThat.ThrowsWithParamName("serviceType", action);
         }

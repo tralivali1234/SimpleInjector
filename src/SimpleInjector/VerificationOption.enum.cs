@@ -23,7 +23,7 @@
 namespace SimpleInjector
 {
     /// <summary>
-    /// This enumeration has defines in which way the container should run the verification process.
+    /// This enumeration defines in which way the container should run the verification process.
     /// </summary>
     public enum VerificationOption
     {
@@ -33,7 +33,7 @@ namespace SimpleInjector
         /// create at least one instance of each registration. An <see cref="System.InvalidOperationException"/>
         /// will be thrown in case the configuration is invalid.
         /// </summary>
-        VerifyOnly,
+        VerifyOnly = 0,
 
         /// <summary>
         /// Specifies that the container will run diagnostic analysis after the verification succeeded. The
@@ -43,6 +43,6 @@ namespace SimpleInjector
         /// <see cref="SimpleInjector.Diagnostics.Analyzer.Analyze">Analyzer.Analyze</see> or by viewing the 
         /// container in the Visual Studio debugger, after the verification has succeeded.
         /// </summary>
-        VerifyAndDiagnose
+        VerifyAndDiagnose = 1
     }
 }

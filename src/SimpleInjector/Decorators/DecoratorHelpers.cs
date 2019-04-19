@@ -30,10 +30,8 @@ namespace SimpleInjector.Decorators
     using System.Linq;
     using System.Linq.Expressions;
     using System.Reflection;
-    using SimpleInjector.Advanced;
-    using SimpleInjector.Internals;
 
-    internal static partial class DecoratorHelpers
+    internal static class DecoratorHelpers
     {
         private static readonly MethodInfo EnumerableSelectMethod =
             Helpers.GetGenericMethodDefinition(() => Enumerable.Select(null, (Func<int, int>)null));
@@ -56,8 +54,8 @@ namespace SimpleInjector.Decorators
         {
             var readOnlyCollection =
                 DecoratorHelpersReadOnlyCollectionMethod
-                .MakeGenericMethod(elementType)
-                .Invoke(null, new object[] { collection });
+                    .MakeGenericMethod(elementType)
+                    .Invoke(null, new object[] { collection });
 
             return (IEnumerable)readOnlyCollection;
         }
@@ -70,7 +68,7 @@ namespace SimpleInjector.Decorators
             var constantExpression = expression as ConstantExpression;
 
             // A ConstantExpression with null is supplied in case of a uncontrolled collection.
-            if (constantExpression != null && object.ReferenceEquals(null, constantExpression.Value))
+            if (constantExpression != null && constantExpression.Value is null)
             {
                 return constantExpression.Type;
             }
@@ -86,53 +84,6 @@ namespace SimpleInjector.Decorators
             }
         }
 
-        internal static Registration CreateRegistrationForContainerControlledCollection(Type serviceType,
-            IContainerControlledCollection instance, Container container)
-        {
-            Type enumerableServiceType = typeof(IEnumerable<>).MakeGenericType(serviceType);
-
-            return new ContainerControlledCollectionRegistration(enumerableServiceType, instance, container)
-            {
-                IsCollection = true
-            };
-        }
-
-        internal static IContainerControlledCollection ExtractContainerControlledCollectionFromRegistration(
-            Registration registration)
-        {
-            var controlledRegistration = registration as ContainerControlledCollectionRegistration;
-
-            // We can only determine the value when registration is created using the 
-            // CreateRegistrationForContainerControlledCollection method. When the registration is null the
-            // collection might be registered as container-uncontrolled collection.
-            if (controlledRegistration == null)
-            {
-                return null;
-            }
-
-            return controlledRegistration.Collection;
-        }
-
-        internal static IContainerControlledCollection CreateContainerControlledCollection(
-            Type serviceType, Container container)
-        {
-            Type allInstancesEnumerableType =
-                typeof(ContainerControlledCollection<>).MakeGenericType(serviceType);
-
-            var collection = Activator.CreateInstance(allInstancesEnumerableType, new object[] { container });
-
-            return (IContainerControlledCollection)collection;
-        }
-     
-        internal static bool IsContainerControlledCollectionExpression(Expression enumerableExpression)
-        {
-            var constantExpression = enumerableExpression as ConstantExpression;
-
-            object enumerable = constantExpression != null ? constantExpression.Value : null;
-
-            return enumerable is IContainerControlledCollection;
-        }
-
         internal static IEnumerable Select(this IEnumerable source, Type type, Delegate selector)
         {
             var selectMethod = EnumerableSelectMethod.MakeGenericMethod(type, type);
@@ -140,8 +91,8 @@ namespace SimpleInjector.Decorators
             return (IEnumerable)selectMethod.Invoke(null, new object[] { source, selector });
         }
 
-        internal static MethodCallExpression Select(Expression collectionExpression, Type type,
-            Delegate selector)
+        internal static MethodCallExpression Select(
+            Expression collectionExpression, Type type, Delegate selector)
         {
             // We make use of .NET's built in Enumerable.Select to wrap the collection with the decorators.
             var selectMethod = EnumerableSelectMethod.MakeGenericMethod(type, type);
@@ -161,17 +112,19 @@ namespace SimpleInjector.Decorators
         // be open generic, while the base type might not be).
         internal static Type GetDecoratingBaseType(Type serviceType, ConstructorInfo decoratorConstructor)
         {
+            var abstractions = Types.GetBaseTypeCandidates(serviceType, decoratorConstructor.DeclaringType);
+
             var decoratorInterfaces =
-                from abstraction in Types.GetBaseTypeCandidates(serviceType, decoratorConstructor.DeclaringType)
+                from abstraction in abstractions
                 where decoratorConstructor.GetParameters()
-                    .Any(parameter => IsDecorateeParameter(parameter.ParameterType, abstraction))
+                    .Any(parameter => IsDecorateeParameter(parameter, abstraction))
                 select abstraction;
 
             return decoratorInterfaces.FirstOrDefault();
         }
 
-        internal static int GetNumberOfServiceTypeDependencies(Type serviceType,
-            ConstructorInfo decoratorConstructor)
+        internal static int GetNumberOfServiceTypeDependencies(
+            Type serviceType, ConstructorInfo decoratorConstructor)
         {
             Type decoratorType = GetDecoratingBaseType(serviceType, decoratorConstructor);
 
@@ -182,7 +135,7 @@ namespace SimpleInjector.Decorators
 
             var validServiceTypeArguments =
                 from parameter in decoratorConstructor.GetParameters()
-                where IsDecorateeParameter(parameter.ParameterType, decoratorType)
+                where IsDecorateeParameter(parameter, decoratorType)
                 select parameter;
 
             return validServiceTypeArguments.Count();
@@ -190,8 +143,7 @@ namespace SimpleInjector.Decorators
 
         internal static bool DecoratesBaseTypes(Type serviceType, ConstructorInfo decoratorConstructor)
         {
-            var baseTypes = GetValidDecoratorConstructorArgumentTypes(serviceType,
-                decoratorConstructor);
+            var baseTypes = GetValidDecoratorConstructorArgumentTypes(serviceType, decoratorConstructor);
 
             var constructorParameters = decoratorConstructor.GetParameters();
 
@@ -200,67 +152,50 @@ namespace SimpleInjector.Decorators
             var decoratorParameters =
                 from baseType in baseTypes
                 from parameter in constructorParameters
-                where parameter.ParameterType == baseType ||
-                    parameter.ParameterType == typeof(Func<>).MakeGenericType(baseType)
+                where parameter.ParameterType == baseType
+                    || (typeof(Func<>).IsGenericTypeDefinitionOf(parameter.ParameterType)
+                        && parameter.ParameterType == typeof(Func<>).MakeGenericType(baseType))
                 select parameter;
 
             return decoratorParameters.Any();
         }
 
-        internal static Type[] GetValidDecoratorConstructorArgumentTypes(Type serviceType, 
-            ConstructorInfo decoratorConstructor)
+        internal static Type[] GetValidDecoratorConstructorArgumentTypes(
+            Type serviceType, ConstructorInfo decoratorConstructor)
         {
             Type decoratingBaseType = GetDecoratingBaseType(serviceType, decoratorConstructor);
 
             return (
                 from baseType in decoratorConstructor.DeclaringType.GetBaseTypesAndInterfaces()
-                where IsDecorateeDependencyParameter(baseType, decoratingBaseType)
+                where IsDecorateeDependencyType(baseType, decoratingBaseType)
                 select baseType)
                 .ToArray();
         }
 
-        internal static bool IsDecorateeParameter(Type parameterType, Type decoratingType) => 
-            IsDecorateeDependencyParameter(parameterType, decoratingType) ||
-            IsDecorateeFactoryDependencyParameter(parameterType, decoratingType);
+        internal static bool IsDecorateeParameter(ParameterInfo parameter, Type decoratingType) =>
+            IsDecorateeDependencyType(parameter.ParameterType, decoratingType)
+            || IsDecorateeFactoryDependencyType(parameter.ParameterType, decoratingType);
 
-        // Checks if the given parameterType can function as the decorated instance of the given service type.
-        internal static bool IsDecorateeFactoryDependencyParameter(Type parameterType, Type serviceType)
+        internal static bool IsDecorateeDependencyType(Type dependencyType, Type serviceType)
         {
-            if (!parameterType.IsGenericType() || parameterType.GetGenericTypeDefinition() != typeof(Func<>))
-            {
-                return false;
-            }
-
-            Type funcArgumentType = parameterType.GetGenericArguments()[0];
-
-            return IsDecorateeDependencyParameter(funcArgumentType, serviceType);
+            return dependencyType == serviceType;
         }
 
-        // Checks if the given parameterType can function as the decorated instance of the given service type.
-        private static bool IsDecorateeDependencyParameter(Type parameterType, Type serviceType) => 
-            parameterType == serviceType;
+        internal static bool IsDecorateeFactoryDependencyType(Type dependencyType, Type decoratingType) =>
+            IsScopelessDecorateeFactoryDependencyType(dependencyType, decoratingType)
+            || IsScopeDecorateeFactoryDependencyParameter(dependencyType, decoratingType);
 
-        private sealed class ContainerControlledCollectionRegistration : Registration
+        internal static bool IsScopelessDecorateeFactoryDependencyType(
+            Type dependencyType, Type decoratingType)
         {
-            internal ContainerControlledCollectionRegistration(Type serviceType,
-                IContainerControlledCollection collection, Container container)
-                : base(Lifestyle.Singleton, container)
-            {
-                this.Collection = collection;
-                this.ImplementationType = serviceType;
-            }
+            return typeof(Func<>).IsGenericTypeDefinitionOf(dependencyType)
+                && dependencyType == typeof(Func<>).MakeGenericType(decoratingType);
+        }
 
-            public override Type ImplementationType { get; }
-
-            internal override bool MustBeVerified => !this.Collection.AllProducersVerified;
-
-            internal IContainerControlledCollection Collection { get; }
-
-            public override Expression BuildExpression() => 
-                Expression.Constant(this.Collection, this.ImplementationType);
-
-            internal override KnownRelationship[] GetRelationshipsCore() => 
-                base.GetRelationshipsCore().Concat(this.Collection.GetRelationships()).ToArray();
+        internal static bool IsScopeDecorateeFactoryDependencyParameter(Type parameterType, Type decoratingType)
+        {
+            return typeof(Func<,>).IsGenericTypeDefinitionOf(parameterType)
+                && parameterType == typeof(Func<,>).MakeGenericType(typeof(Scope), decoratingType);
         }
     }
 }

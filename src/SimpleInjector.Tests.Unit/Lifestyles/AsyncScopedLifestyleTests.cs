@@ -162,7 +162,7 @@
             catch (ActivationException ex)
             {
                 AssertThat.ExceptionMessageContains(@"
-                    The ConcreteCommand is registered as 'Async Scoped' lifestyle, but the instance is
+                    ConcreteCommand is registered as 'Async Scoped' lifestyle, but the instance is
                     requested outside the context of an active (Async Scoped) scope."
                     .TrimInside(),
                     ex);
@@ -677,7 +677,7 @@
                     "The decorated instance should be scoped per execution context. It seems to be transient.");
             }
         }
-                
+
         [TestMethod]
         public void ContainerVerify_WithWhenScopeEndsRegistration_Succeeds()
         {

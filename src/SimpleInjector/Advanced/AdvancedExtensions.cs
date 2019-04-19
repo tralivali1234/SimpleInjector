@@ -1,7 +1,7 @@
 ﻿#region Copyright Simple Injector Contributors
 /* The Simple Injector is an easy-to-use Inversion of Control library for .NET
  * 
- * Copyright (c) 2013-2018 Simple Injector Contributors
+ * Copyright (c) 2013-2019 Simple Injector Contributors
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
  * associated documentation files (the "Software"), to deal in the Software without restriction, including 
@@ -51,12 +51,13 @@ namespace SimpleInjector.Advanced
         /// <param name="container">The container.</param>
         /// <returns><c>true</c> if the specified container is verifying; otherwise, <c>false</c>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="container"/> is null.</exception>
+        [Obsolete("Please use Container." + nameof(Container.IsVerifying) + " instead. " +
+            "This method will be removed in a future release.",
+            error: false)]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static bool IsVerifying(this Container container)
         {
             Requires.IsNotNull(container, nameof(container));
-
-            // Need to check, because IsVerifying will throw when its ThreadLocal<T> is disposed.
-            container.ThrowWhenDisposed();
 
             return container.IsVerifying;
         }
@@ -74,12 +75,16 @@ namespace SimpleInjector.Advanced
         /// <returns>The stored item or null (Nothing in VB).</returns>
         /// <exception cref="ArgumentNullException">Thrown when one of the supplied arguments is a null
         /// reference (Nothing in VB).</exception>
+        [Obsolete("Please use Container." + nameof(Container.ContainerScope) + "." +
+            nameof(ContainerScope.GetItem) + " instead. This method will be removed in a future release.",
+            error: false)]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static object GetItem(this Container container, object key)
         {
             Requires.IsNotNull(container, nameof(container));
             Requires.IsNotNull(key, nameof(key));
 
-            return container.GetItem(key);
+            return container.ContainerScope.GetItem(key);
         }
 
         /// <summary>
@@ -94,12 +99,16 @@ namespace SimpleInjector.Advanced
         /// <param name="item">The actual item. May be null.</param>
         /// <exception cref="ArgumentNullException">Thrown when either <paramref name="container"/> or
         /// <paramref name="key"/> is a null reference (Nothing in VB).</exception>
+        [Obsolete("Please use Container." + nameof(Container.ContainerScope) + "." +
+            nameof(ContainerScope.SetItem) + " instead. This method will be removed in a future release.",
+            error: false)]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static void SetItem(this Container container, object key, object item)
         {
             Requires.IsNotNull(container, nameof(container));
             Requires.IsNotNull(key, nameof(key));
 
-            container.SetItem(key, item);
+            container.ContainerScope.SetItem(key, item);
         }
 
         /// <summary>
@@ -114,18 +123,23 @@ namespace SimpleInjector.Advanced
         /// <returns>The stored item or the item from the <paramref name="valueFactory"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when either <paramref name="container"/>,
         /// <paramref name="key"/> or <paramref name="valueFactory"/> is a null reference (Nothing in VB).</exception>
-        public static T GetOrSetItem<T>(this Container container, object key, Func<Container, object, T> valueFactory)
+        [Obsolete("Please use Container." + nameof(Container.ContainerScope) + "." +
+            nameof(ContainerScope.GetOrSetItem) + " instead. This method will be removed in a future release.",
+            error: false)]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public static T GetOrSetItem<T>(
+            this Container container, object key, Func<Container, object, T> valueFactory)
         {
             Requires.IsNotNull(container, nameof(container));
             Requires.IsNotNull(key, nameof(key));
             Requires.IsNotNull(valueFactory, nameof(valueFactory));
 
-            return container.GetOrSetItem(key, valueFactory);
+            return container.ContainerScope.GetOrSetItem(key, valueFactory);
         }
 
         /// <summary>
         /// Allows appending new registrations to existing registrations made using one of the
-        /// <b>RegisterCollection</b> overloads.
+        /// <b>Collections.Register</b> overloads.
         /// </summary>
         /// <param name="container">The container.</param>
         /// <param name="serviceType">The service type of the collection.</param>
@@ -136,21 +150,23 @@ namespace SimpleInjector.Advanced
         /// reference type, is open generic, or ambiguous.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the container is locked.</exception>
         /// <exception cref="NotSupportedException">Thrown when the method is called for a registration
-        /// that is made with one of the <b>RegisterCollection</b> overloads that accepts a dynamic collection
+        /// that is made with one of the <b>Collections.Register</b> overloads that accepts a dynamic collection
         /// (an <b>IEnumerable</b> or <b>IEnumerable&lt;TService&gt;</b>).</exception>
-        [Obsolete("Please use Container." + nameof(Container.Collections) + "." +
-            nameof(ContainerCollectionRegistrator.AppendTo) + " instead.", error: false)]
-        public static void AppendToCollection(this Container container, Type serviceType, 
-            Registration registration)
+        [Obsolete("Please use Container." + nameof(Container.Collection) + "." +
+            nameof(ContainerCollectionRegistrator.Append) + " instead. This method will be removed in a future release.",
+            error: false)]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+        public static void AppendToCollection(
+            this Container container, Type serviceType, Registration registration)
         {
             Requires.IsNotNull(container, nameof(container));
 
-            container.Collections.AppendTo(serviceType, registration);
+            container.Collection.Append(serviceType, registration);
         }
 
         /// <summary>
         /// Allows appending new registrations to existing registrations made using one of the
-        /// <b>RegisterCollection</b> overloads.
+        /// <b>Collections.Register</b> overloads.
         /// </summary>
         /// <param name="container">The container.</param>
         /// <param name="serviceType">The service type of the collection.</param>
@@ -161,16 +177,17 @@ namespace SimpleInjector.Advanced
         /// reference type, or ambiguous.</exception>
         /// <exception cref="InvalidOperationException">Thrown when the container is locked.</exception>
         /// <exception cref="NotSupportedException">Thrown when the method is called for a registration
-        /// that is made with one of the <b>RegisterCollection</b> overloads that accepts a dynamic collection
+        /// that is made with one of the <b>Collections.Register</b> overloads that accepts a dynamic collection
         /// (an <b>IEnumerable</b> or <b>IEnumerable&lt;TService&gt;</b>).</exception>
-        [Obsolete("Please use Container." + nameof(Container.Collections) + "." +
-            nameof(ContainerCollectionRegistrator.AppendTo) + " instead.", error: false)]
-        public static void AppendToCollection(this Container container, Type serviceType,
-            Type implementationType)
+        [Obsolete("Please use Container." + nameof(Container.Collection) + "." +
+            nameof(ContainerCollectionRegistrator.Append) + " instead. This method will be removed in a future release.",
+            error: false)]
+        public static void AppendToCollection(
+            this Container container, Type serviceType, Type implementationType)
         {
             Requires.IsNotNull(container, nameof(container));
 
-            container.Collections.AppendTo(serviceType, implementationType);
+            container.Collection.Append(serviceType, implementationType);
         }
 
         internal static void Verify(this IDependencyInjectionBehavior behavior, ConstructorInfo constructor)

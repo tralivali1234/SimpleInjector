@@ -26,34 +26,23 @@ namespace SimpleInjector.Diagnostics.Analyzers
     using System.Collections.Generic;
     using System.Globalization;
     using System.Linq;
-    using System.Reflection;
 
     internal sealed class SingleResponsibilityViolationsAnalyzer : IContainerAnalyzer
     {
-        internal static readonly IContainerAnalyzer Instance = new SingleResponsibilityViolationsAnalyzer();
-
         private const int MaximumValidNumberOfDependencies = 7;
-
-        private SingleResponsibilityViolationsAnalyzer()
-        {
-        }
 
         public DiagnosticType DiagnosticType => DiagnosticType.SingleResponsibilityViolation;
 
         public string Name => "Potential Single Responsibility Violations";
 
-        public string GetRootDescription(IEnumerable<DiagnosticResult> results)
-        {
-            int count = results.Count();
-
-            return count + " possible single responsibility " + ViolationPlural(count) + ".";
-        }
+        public string GetRootDescription(DiagnosticResult[] results) =>
+            $"{results.Length} possible single responsibility {ViolationPlural(results.Length)}.";
 
         public string GetGroupDescription(IEnumerable<DiagnosticResult> results)
         {
             int count = results.Count();
 
-            return count + " possible " + ViolationPlural(count) + ".";
+            return $"{count} possible {ViolationPlural(count)}.";
         }
 
         public DiagnosticResult[] Analyze(IEnumerable<InstanceProducer> producers) => (
@@ -79,12 +68,7 @@ namespace SimpleInjector.Diagnostics.Analyzers
             // dependency, which will make it look as if the decorator has too many dependencies. Since the
             // container will delegate the creation of those elements back to the container, those elements
             // would by them selves still get analyzed, so the only thing we'd miss here is the decorator.
-            if (!producer.ServiceType.IsGenericType())
-            {
-                return true;
-            }
-
-            return producer.ServiceType.GetGenericTypeDefinition() != typeof(IEnumerable<>);
+            return !typeof(IEnumerable<>).IsGenericTypeDefinitionOf(producer.ServiceType);
         }
 
         private static string BuildRelationshipDescription(Type implementationType, int numberOfDependencies) =>

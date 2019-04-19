@@ -1,7 +1,7 @@
 ﻿#region Copyright Simple Injector Contributors
 /* The Simple Injector is an easy-to-use Inversion of Control library for .NET
  * 
- * Copyright (c) 2015-2016 Simple Injector Contributors
+ * Copyright (c) 2015-2018 Simple Injector Contributors
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
  * associated documentation files (the "Software"), to deal in the Software without restriction, including 
@@ -22,12 +22,19 @@
 
 namespace SimpleInjector.Integration.AspNetCore.Mvc
 {
+    using System;
+    using System.Collections.Concurrent;
+    using System.Globalization;
+    using System.Linq;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.Controllers;
 
     /// <summary>Controller activator for Simple Injector.</summary>
     public sealed class SimpleInjectorControllerActivator : IControllerActivator
     {
+        private readonly ConcurrentDictionary<Type, InstanceProducer> controllerProducers =
+            new ConcurrentDictionary<Type, InstanceProducer>();
+
         private readonly Container container;
 
         /// <summary>
@@ -44,8 +51,31 @@ namespace SimpleInjector.Integration.AspNetCore.Mvc
         /// <summary>Creates a controller.</summary>
         /// <param name="context">The Microsoft.AspNet.Mvc.ActionContext for the executing action.</param>
         /// <returns>A new controller instance.</returns>
-        public object Create(ControllerContext context) =>
-            this.container.GetInstance(context.ActionDescriptor.ControllerTypeInfo.AsType());
+        public object Create(ControllerContext context)
+        {
+            Type controllerType = context.ActionDescriptor.ControllerTypeInfo.AsType();
+
+            var producer = this.controllerProducers.GetOrAdd(controllerType, this.GetControllerProducer);
+
+            if (producer == null)
+            {
+                throw new InvalidOperationException(
+                    string.Format(
+                        CultureInfo.InvariantCulture,
+                        "For the {0} to function properly, it requires all controllers to be registered explicitly " +
+                        "in Simple Injector, but a registration for {1} is missing. To ensure all controllers are " +
+                        "registered properly, call the RegisterMvcControllers extension method on the Container " +
+                        "from within your Startup.Configure method while supplying the IApplicationBuilder " +
+                        "instance, e.g. \"this.container.RegisterMvcControllers(app);\".{2}" +
+                        "Full controller name: {3}.",
+                        typeof(SimpleInjectorControllerActivator).Name,
+                        controllerType.ToFriendlyName(),
+                        Environment.NewLine,
+                        controllerType.FullName));
+            }
+
+            return producer.GetInstance();
+        }
 
         /// <summary>Releases the controller.</summary>
         /// <param name="context">The Microsoft.AspNet.Mvc.ActionContext for the executing action.</param>
@@ -53,5 +83,10 @@ namespace SimpleInjector.Integration.AspNetCore.Mvc
         public void Release(ControllerContext context, object controller)
         {
         }
+
+        // By searching through the current registrations, we ensure that the controller is not auto-registered, because
+        // that might cause it to be resolved from ASP.NET Core, in case auto cross-wiring is enabled.
+        private InstanceProducer GetControllerProducer(Type controllerType) =>
+            this.container.GetCurrentRegistrations().SingleOrDefault(r => r.ServiceType == controllerType);
     }
 }

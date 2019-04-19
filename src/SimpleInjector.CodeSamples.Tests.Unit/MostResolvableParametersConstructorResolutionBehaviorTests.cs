@@ -271,7 +271,7 @@
 
             container.Register<ICommand, ConcreteCommand>();
 
-            container.RegisterCollection(typeof(IValidator<>), new[]
+            container.Collection.Register(typeof(IValidator<>), new[]
             {
                 typeof(MultipleCtorNullValidator<>),
             });

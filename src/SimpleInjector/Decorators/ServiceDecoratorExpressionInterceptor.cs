@@ -1,7 +1,7 @@
 ﻿#region Copyright Simple Injector Contributors
 /* The Simple Injector is an easy-to-use Inversion of Control library for .NET
  * 
- * Copyright (c) 2013-2015 Simple Injector Contributors
+ * Copyright (c) 2013-2019 Simple Injector Contributors
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
  * associated documentation files (the "Software"), to deal in the Software without restriction, including 
@@ -30,26 +30,20 @@ namespace SimpleInjector.Decorators
 
     internal sealed class ServiceDecoratorExpressionInterceptor : DecoratorExpressionInterceptor
     {
-        private static readonly object ContainerItemsKeyAndLock = new object();
-
         private readonly Dictionary<InstanceProducer, Registration> registrations;
         private readonly ExpressionBuiltEventArgs e;
         private readonly Type registeredServiceType;
         private ConstructorInfo decoratorConstructor;
-        private Type decoratorType;
 
-        public ServiceDecoratorExpressionInterceptor(DecoratorExpressionInterceptorData data,
-            Dictionary<InstanceProducer, Registration> registrations, ExpressionBuiltEventArgs e)
+        public ServiceDecoratorExpressionInterceptor(
+            DecoratorExpressionInterceptorData data,
+            Dictionary<InstanceProducer, Registration> registrations,
+            ExpressionBuiltEventArgs e)
             : base(data)
         {
             this.registrations = registrations;
             this.e = e;
             this.registeredServiceType = e.RegisteredServiceType;
-        }
-
-        protected override Dictionary<InstanceProducer, ServiceTypeDecoratorInfo> ThreadStaticServiceTypePredicateCache
-        {
-            get { return this.GetThreadStaticServiceTypePredicateCacheByKey(ContainerItemsKeyAndLock); }
         }
 
         internal bool SatisfiesPredicate()
@@ -67,9 +61,6 @@ namespace SimpleInjector.Decorators
             {
                 this.Lifestyle = this.Container.Options.SelectLifestyle(closedDecoratorType);
             }
-
-            // The actual decorator could be different. TODO: must... write... test... for... this.
-            this.decoratorType = this.decoratorConstructor.DeclaringType;
 
             // By creating the decorator using a Lifestyle Registration the decorator can be completely
             // incorporated into the pipeline. This means that the ExpressionBuilding can be applied,
@@ -97,9 +88,7 @@ namespace SimpleInjector.Decorators
         private void MarkDecorateeFactoryRelationshipAsInstanceCreationDelegate(
             KnownRelationship[] relationships)
         {
-            var decorateeFactoryDependencies = this.GetDecorateeFactoryDependencies(relationships);
-
-            foreach (Registration dependency in decorateeFactoryDependencies)
+            foreach (Registration dependency in this.GetDecorateeFactoryDependencies(relationships))
             {
                 // Mark the dependency of the decoratee factory
                 dependency.WrapsInstanceCreationDelegate = true;
@@ -108,7 +97,7 @@ namespace SimpleInjector.Decorators
 
         private IEnumerable<Registration> GetDecorateeFactoryDependencies(KnownRelationship[] relationships) =>
             from relationship in relationships
-            where DecoratorHelpers.IsDecorateeFactoryDependencyParameter(
+            where DecoratorHelpers.IsScopelessDecorateeFactoryDependencyType(
                 relationship.Dependency.ServiceType, this.e.RegisteredServiceType)
             select relationship.Dependency.Registration;
 
@@ -144,8 +133,13 @@ namespace SimpleInjector.Decorators
 
             // Add the decorator to the list of applied decorators. This way users can use this information in 
             // the predicate of the next decorator they add.
-            info.AddAppliedDecorator(this.e.RegisteredServiceType, this.decoratorType, this.Container,
-                this.Lifestyle, this.e.Expression, decoratorRelationships);
+            info.AddAppliedDecorator(
+                this.e.RegisteredServiceType,
+                this.decoratorConstructor.DeclaringType,
+                this.Container,
+                this.Lifestyle,
+                this.e.Expression,
+                decoratorRelationships);
         }
     }
 }

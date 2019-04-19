@@ -24,7 +24,6 @@ namespace SimpleInjector
 {
     using System;
     using System.Linq.Expressions;
-    using System.Reflection;
 
     /// <summary>
     /// Provides data for and interaction with the 
@@ -102,11 +101,11 @@ namespace SimpleInjector
         public void Register(Expression expression)
         {
             Requires.IsNotNull(expression, nameof(expression));
-            Requires.ServiceIsAssignableFromExpression(this.UnregisteredServiceType, expression, 
-                nameof(expression));
+            Requires.ServiceIsAssignableFromExpression(
+                this.UnregisteredServiceType, expression, nameof(expression));
 
-            Requires.ServiceIsAssignableFromImplementation(this.UnregisteredServiceType, expression.Type,
-                nameof(expression));
+            Requires.ServiceIsAssignableFromImplementation(
+                this.UnregisteredServiceType, expression.Type, nameof(expression));
 
             this.RequiresNotHandled();
 
@@ -132,8 +131,8 @@ namespace SimpleInjector
         public void Register(Registration registration)
         {
             Requires.IsNotNull(registration, nameof(registration));
-            Requires.ServiceIsAssignableFromRegistration(this.UnregisteredServiceType, registration, 
-                nameof(registration));
+            Requires.ServiceIsAssignableFromRegistration(
+                this.UnregisteredServiceType, registration, nameof(registration));
 
             this.RequiresNotHandled();
 
@@ -165,7 +164,8 @@ namespace SimpleInjector
                 {
                     throw new ActivationException(
                         StringResources.UnregisteredTypeEventArgsRegisterDelegateThrewAnException(
-                            typeof(TService), ex), ex);
+                            typeof(TService), ex),
+                        ex);
                 }
 
                 try
@@ -176,7 +176,8 @@ namespace SimpleInjector
                 {
                     throw new InvalidCastException(
                         StringResources.UnregisteredTypeEventArgsRegisterDelegateReturnedUncastableInstance(
-                            typeof(TService), ex), ex);
+                            typeof(TService), ex),
+                        ex);
                 }
             }
         }

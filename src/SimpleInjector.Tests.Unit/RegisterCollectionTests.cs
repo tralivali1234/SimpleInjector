@@ -17,7 +17,7 @@
         public interface ILogStuf
         {
         }
-        
+
         public interface ITypeConverter<out TBase>
         {
             // TBase ConvertFromString(string value);
@@ -35,7 +35,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<ILogStuf>(new[] { CurrentAssembly });
+            container.Collection.Register<ILogStuf>(new[] { CurrentAssembly });
 
             // Act
             var loggers = container.GetAllInstances<ILogStuf>();
@@ -52,7 +52,7 @@
 
             var assemblies = Enumerable.Repeat(CurrentAssembly, 2);
 
-            container.RegisterCollection<ILogStuf>(assemblies);
+            container.Collection.Register<ILogStuf>(assemblies);
 
             // Act
             var loggers = container.GetAllInstances<ILogStuf>();
@@ -67,7 +67,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(ILogStuf), new[] { CurrentAssembly });
+            container.Collection.Register(typeof(ILogStuf), new[] { CurrentAssembly });
 
             // Act
             var loggers = container.GetAllInstances<ILogStuf>();
@@ -82,7 +82,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(ILogStuf), Enumerable.Repeat(CurrentAssembly, 1));
+            container.Collection.Register(typeof(ILogStuf), Enumerable.Repeat(CurrentAssembly, 1));
 
             // Act
             var loggers = container.GetAllInstances<ILogStuf>();
@@ -100,13 +100,13 @@
             // Act
             // Here the user might think he calls RegisterCollection(Type, params Type[]), but instead
             // RegisterCollection<Type>(new[] { typeof(ILogger), typeof(NullLogger) }) is called. 
-            Action action = () => container.RegisterCollection(typeof(ILogger), typeof(NullLogger));
+            Action action = () => container.Collection.Register(typeof(ILogger), typeof(NullLogger));
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
                 "The most likely cause of this happening is because the C# overload resolution picked " +
                 "a different method for you than you expected to call. The method C# selected for you is: " +
-                "RegisterCollection<Type>",
+                "Container.Collection.Register<Type>",
                 action);
         }
 
@@ -118,7 +118,7 @@
 
             container.Register(typeof(GenericEventHandler<>), typeof(GenericEventHandler<>), Lifestyle.Singleton);
 
-            container.RegisterCollection(typeof(IEventHandler<>), new[] { typeof(GenericEventHandler<>) });
+            container.Collection.Register(typeof(IEventHandler<>), new[] { typeof(GenericEventHandler<>) });
 
             // Act
             var handler1 = container.GetAllInstances<IEventHandler<int>>().Single();
@@ -135,11 +135,11 @@
             var registeredTypes = new[]
             {
                 typeof(NewConstraintEventHandler<>),
-                typeof(ClassConstraintEventHandler<>), 
+                typeof(ClassConstraintEventHandler<>),
                 typeof(StructConstraintEventHandler<>)
             };
 
-            var expectedTypes = new[] 
+            var expectedTypes = new[]
             {
                 typeof(NewConstraintEventHandler<ClassEvent>),
                 typeof(ClassConstraintEventHandler<ClassEvent>)
@@ -157,11 +157,11 @@
             var registeredTypes = new[]
             {
                 typeof(NewConstraintEventHandler<>),
-                typeof(ClassConstraintEventHandler<>), 
+                typeof(ClassConstraintEventHandler<>),
                 typeof(StructConstraintEventHandler<>)
             };
 
-            var expectedTypes = new[] 
+            var expectedTypes = new[]
             {
                 typeof(NewConstraintEventHandler<StructEvent>),
                 typeof(StructConstraintEventHandler<StructEvent>)
@@ -179,11 +179,11 @@
             var registeredTypes = new[]
             {
                 typeof(NewConstraintEventHandler<>),
-                typeof(ClassConstraintEventHandler<>), 
+                typeof(ClassConstraintEventHandler<>),
                 typeof(StructConstraintEventHandler<>)
             };
 
-            var expectedTypes = new[] 
+            var expectedTypes = new[]
             {
                 typeof(ClassConstraintEventHandler<NoDefaultConstructorEvent>)
             };
@@ -199,7 +199,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), new[] { typeof(ClassConstraintEventHandler<>) });
+            container.Collection.Register(typeof(IEventHandler<>), new[] { typeof(ClassConstraintEventHandler<>) });
 
             // Act
             var instance1 = container.GetAllInstances<IEventHandler<ClassEvent>>().Single();
@@ -218,7 +218,7 @@
             var container = ContainerFactory.New();
 
             // Act
-            Action action = () => container.RegisterCollection(typeof(IEventHandler<>), new[] { invalidType });
+            Action action = () => container.Collection.Register(typeof(IEventHandler<>), new[] { invalidType });
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
@@ -234,7 +234,7 @@
             var container = ContainerFactory.New();
 
             // Act
-            container.RegisterCollection(typeof(IEventHandler<>), new[] { compatibleNonGenericType });
+            container.Collection.Register(typeof(IEventHandler<>), new[] { compatibleNonGenericType });
         }
 
         [TestMethod]
@@ -246,7 +246,7 @@
             var container = ContainerFactory.New();
 
             // Act
-            container.RegisterCollection(typeof(IEventHandler<>), new[] { compatibleClosedGenericType });
+            container.Collection.Register(typeof(IEventHandler<>), new[] { compatibleClosedGenericType });
         }
 
         [TestMethod]
@@ -258,7 +258,7 @@
             var container = new Container();
 
             // Act
-            Action action = () => container.RegisterCollection(invalidOpenGenericServiceType, new[] { typeof(int) });
+            Action action = () => container.Collection.Register(invalidOpenGenericServiceType, new[] { typeof(int) });
 
             // Assert
             AssertThat.ThrowsWithParamName<ArgumentNullException>("serviceType", action);
@@ -272,7 +272,7 @@
 
             // Act
             Action action = () =>
-                (new Container()).RegisterCollection(typeof(int), invalidOpenGenericImplementations);
+                (new Container()).Collection.Register(typeof(int), invalidOpenGenericImplementations);
 
             // Assert
             AssertThat.ThrowsWithParamName<ArgumentNullException>("serviceTypes", action);
@@ -286,7 +286,7 @@
 
             // Act
             Action action = () =>
-                (new Container()).RegisterCollection(typeof(IEventHandler<>), invalidOpenGenericImplementations);
+                (new Container()).Collection.Register(typeof(IEventHandler<>), invalidOpenGenericImplementations);
 
             // Assert
             AssertThat.ThrowsWithParamName<ArgumentException>("serviceTypes", action);
@@ -302,7 +302,7 @@
 
             container.Register<ILogger, FakeLogger>(Lifestyle.Singleton);
 
-            container.RegisterCollection(typeof(IEventHandler<>), new[] { typeof(EventHandlerWithLoggerDependency<>) });
+            container.Collection.Register(typeof(IEventHandler<>), new[] { typeof(EventHandlerWithLoggerDependency<>) });
 
             container.Register<ServiceWithDependency<IEnumerable<IEventHandler<ClassEvent>>>>();
 
@@ -330,7 +330,7 @@
             // Arrange
             var container = new Container();
 
-            container.RegisterCollection(typeof(IEventHandler<>), new Type[]
+            container.Collection.Register(typeof(IEventHandler<>), new Type[]
             {
                 typeof(HandlerWithTwoImplementations) // : IEventHandler<int>, IEventHandler<double>
             });
@@ -350,8 +350,8 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<ITypeConverter<DerivedA>>(Enumerable.Repeat(new DerivedAConverter(), 1));
-            container.RegisterCollection<ITypeConverter<DerivedB>>(Enumerable.Repeat(new DerivedBConverter(), 1));
+            container.Collection.Register<ITypeConverter<DerivedA>>(Enumerable.Repeat(new DerivedAConverter(), 1));
+            container.Collection.Register<ITypeConverter<DerivedB>>(Enumerable.Repeat(new DerivedBConverter(), 1));
 
             // Act
             var baseConverters = container.GetAllInstances<ITypeConverter<BaseClass>>();
@@ -367,8 +367,8 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(ITypeConverter<DerivedA>), new[] { new DerivedAConverter() });
-            container.RegisterCollection(typeof(ITypeConverter<DerivedB>), new[] { new DerivedBConverter() });
+            container.Collection.Register(typeof(ITypeConverter<DerivedA>), new[] { new DerivedAConverter() });
+            container.Collection.Register(typeof(ITypeConverter<DerivedB>), new[] { new DerivedBConverter() });
 
             // Act
             var baseConverters = container.GetAllInstances<ITypeConverter<BaseClass>>();
@@ -384,8 +384,8 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<ITypeConverter<DerivedA>>(new[] { new DerivedAConverter() });
-            container.RegisterCollection<ITypeConverter<DerivedB>>(new[] { new DerivedBConverter() });
+            container.Collection.Register<ITypeConverter<DerivedA>>(new[] { new DerivedAConverter() });
+            container.Collection.Register<ITypeConverter<DerivedB>>(new[] { new DerivedBConverter() });
 
             // Act
             var baseConverters = container.GetAllInstances<ITypeConverter<BaseClass>>();
@@ -401,7 +401,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), Type.EmptyTypes);
+            container.Collection.Register(typeof(IEventHandler<>), Type.EmptyTypes);
 
             // Act
             container.GetAllInstances<IEventHandler<UserServiceBase>>();
@@ -413,12 +413,12 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<int>), Type.EmptyTypes);
+            container.Collection.Register(typeof(IEventHandler<int>), Type.EmptyTypes);
 
             // Act
             container.GetAllInstances<IEventHandler<double>>();
         }
-        
+
         [TestMethod]
         public void RegisterCollectionTService_WithNullArgument_ThrowsException()
         {
@@ -428,7 +428,7 @@
             IEnumerable<IPlugin> plugins = null;
 
             // Act
-            Action action = () => container.RegisterCollection<IPlugin>(plugins);
+            Action action = () => container.Collection.Register<IPlugin>(plugins);
 
             // Assert
             AssertThat.Throws<ArgumentNullException>(action);
@@ -440,7 +440,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new PluginImpl(), new PluginImpl(), new PluginImpl());
+            container.Collection.Register<IPlugin>(new PluginImpl(), new PluginImpl(), new PluginImpl());
 
             // Act
             // PluginManager has a constructor with an IEnumerable<IPlugin> argument.
@@ -492,7 +492,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>();
+            container.Collection.Register<IPlugin>(Type.EmptyTypes);
 
             // Act
             // PluginManager has a constructor with an IEnumerable<IPlugin> argument.
@@ -509,7 +509,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new PluginImpl());
+            container.Collection.Register<IPlugin>(new PluginImpl());
 
             // Act
             Action action = () => container.RegisterInstance<IEnumerable<IPlugin>>(new IPlugin[0]);
@@ -524,7 +524,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new PluginImpl());
+            container.Collection.Register<IPlugin>(new PluginImpl());
 
             // Act
             Action action = () => container.Register<IEnumerable<IPlugin>>(() => new IPlugin[0]);
@@ -544,7 +544,7 @@
             container.RegisterInstance<IEnumerable<IPlugin>>(new IPlugin[0]);
 
             // Act
-            Action action = () => container.RegisterCollection<IPlugin>(new PluginImpl());
+            Action action = () => container.Collection.Register<IPlugin>(new PluginImpl());
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<NotSupportedException>(
@@ -561,7 +561,7 @@
             container.Register<IEnumerable<IPlugin>>(() => new IPlugin[0]);
 
             // Act
-            Action action = () => container.RegisterCollection<IPlugin>(new PluginImpl());
+            Action action = () => container.Collection.Register<IPlugin>(new PluginImpl());
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<NotSupportedException>(
@@ -581,7 +581,7 @@
                 new SqlUserRepository()
             };
 
-            container.RegisterCollection<IUserRepository>(repositoryToRegister);
+            container.Collection.Register<IUserRepository>(repositoryToRegister);
 
             // Act
             var repositories = container.GetAllInstances<IUserRepository>();
@@ -597,7 +597,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IUserRepository>(new InMemoryUserRepository(), new SqlUserRepository());
+            container.Collection.Register<IUserRepository>(new InMemoryUserRepository(), new SqlUserRepository());
 
             // Act
             var repositories = container.GetAllInstances<IUserRepository>();
@@ -631,7 +631,7 @@
             container.GetInstance<IUserRepository>();
 
             // Act
-            Action action = () => container.RegisterCollection<IUserRepository>(new IUserRepository[0]);
+            Action action = () => container.Collection.Register<IUserRepository>(new IUserRepository[0]);
 
             // Assert
             AssertThat.Throws<InvalidOperationException>(action,
@@ -643,12 +643,12 @@
         {
             // Arrange
             var container = ContainerFactory.New();
-            container.RegisterCollection<IUserRepository>();
+            container.Collection.Register<IUserRepository>(Type.EmptyTypes);
             var repositories = container.GetAllInstances<IUserRepository>();
             var count = repositories.Count();
 
             // Act
-            Action action = () => container.RegisterCollection<IUserRepository>(new IUserRepository[0]);
+            Action action = () => container.Collection.Register<IUserRepository>(new IUserRepository[0]);
 
             // Assert
             AssertThat.Throws<InvalidOperationException>(action,
@@ -664,7 +664,7 @@
             IUserRepository[] repositories = null;
 
             // Act
-            Action action = () => container.RegisterCollection<IUserRepository>(repositories);
+            Action action = () => container.Collection.Register<IUserRepository>(repositories);
 
             // Assert
             AssertThat.Throws<ArgumentNullException>(action);
@@ -679,7 +679,7 @@
             Type[] repositoryTypes = null;
 
             // Act
-            Action action = () => container.RegisterCollection<IUserRepository>(repositoryTypes);
+            Action action = () => container.Collection.Register<IUserRepository>(repositoryTypes);
 
             // Assert
             AssertThat.Throws<ArgumentNullException>(action);
@@ -694,7 +694,7 @@
             IEnumerable<IUserRepository> repositories = null;
 
             // Act
-            Action action = () => container.RegisterCollection<IUserRepository>(repositories);
+            Action action = () => container.Collection.Register<IUserRepository>(repositories);
 
             // Assert
             AssertThat.Throws<ArgumentNullException>(action);
@@ -709,7 +709,7 @@
             IEnumerable<Type> repositoryTypes = null;
 
             // Act
-            Action action = () => container.RegisterCollection<IUserRepository>(repositoryTypes);
+            Action action = () => container.Collection.Register<IUserRepository>(repositoryTypes);
 
             // Assert
             AssertThat.Throws<ArgumentNullException>(action);
@@ -724,7 +724,7 @@
             try
             {
                 // Act
-                container.RegisterCollection(new[] { typeof(IUserRepository) });
+                container.Collection.Register(new[] { typeof(IUserRepository) });
 
                 // Assert
                 Assert.Fail("Exception expected.");
@@ -748,10 +748,10 @@
             // Arrange
             var container = ContainerFactory.New();
             var repositories = new IUserRepository[] { new InMemoryUserRepository(), new SqlUserRepository() };
-            container.RegisterCollection<IUserRepository>(repositories);
+            container.Collection.Register<IUserRepository>(repositories);
 
             // Act
-            Action action = () => container.RegisterCollection<IUserRepository>(repositories);
+            Action action = () => container.Collection.Register<IUserRepository>(repositories);
 
             // Assert
             AssertThat.Throws<InvalidOperationException>(action);
@@ -763,7 +763,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IUserRepository>();
+            container.Collection.Register<IUserRepository>(new Assembly[0]);
 
             // Act
             var repositories = container.GetAllInstances(typeof(IUserRepository));
@@ -778,7 +778,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IUserRepository>(new InMemoryUserRepository(), new SqlUserRepository());
+            container.Collection.Register<IUserRepository>(new InMemoryUserRepository(), new SqlUserRepository());
 
             // Act
             var repositories = container.GetAllInstances(typeof(IUserRepository)).ToArray();
@@ -824,7 +824,7 @@
 
             var repositories = new IUserRepository[] { new SqlUserRepository(), new InMemoryUserRepository() };
 
-            container.RegisterCollection<IUserRepository>(repositories);
+            container.Collection.Register<IUserRepository>(repositories);
 
             // Act
             var collection = container.GetAllInstances<IUserRepository>();
@@ -841,7 +841,7 @@
 
             var repositories = new IUserRepository[] { new SqlUserRepository(), new InMemoryUserRepository() };
 
-            container.RegisterCollection<IUserRepository>(repositories);
+            container.Collection.Register<IUserRepository>(repositories);
 
             repositories[0] = null;
 
@@ -858,7 +858,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IUserRepository>(new List<IUserRepository> { new SqlUserRepository(), new InMemoryUserRepository() });
+            container.Collection.Register<IUserRepository>(new List<IUserRepository> { new SqlUserRepository(), new InMemoryUserRepository() });
 
             // Act
             var collection = container.GetAllInstances<IUserRepository>();
@@ -873,7 +873,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IUserRepository>(new Collection<IUserRepository>
+            container.Collection.Register<IUserRepository>(new Collection<IUserRepository>
             {
                 new SqlUserRepository(),
                 new InMemoryUserRepository()
@@ -892,7 +892,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IUserRepository>(new IUserRepository[] { new SqlUserRepository(), new InMemoryUserRepository() });
+            container.Collection.Register<IUserRepository>(new IUserRepository[] { new SqlUserRepository(), new InMemoryUserRepository() });
 
             // Act
             var collection1 = container.GetAllInstances<IUserRepository>();
@@ -938,7 +938,7 @@
             var container = ContainerFactory.New();
 
             // Act
-            Action action = () => container.RegisterCollection<IUserRepository>(new IUserRepository[] { null });
+            Action action = () => container.Collection.Register<IUserRepository>(new IUserRepository[] { null });
 
             // Assert
             AssertThat.Throws<ArgumentException>(action);
@@ -953,14 +953,14 @@
             try
             {
                 // Act
-                container.RegisterCollection<IDictionary>(new[] { typeof(IGenericDictionary<>) });
+                container.Collection.Register<IDictionary>(new[] { typeof(IGenericDictionary<>) });
 
                 // Assert
                 Assert.Fail("Exception expected.");
             }
             catch (ArgumentException ex)
             {
-                Assert.IsTrue(ex.Message.Contains("open generic type"), "Actual: " + ex.Message);
+                Assert.IsTrue(ex.Message.Contains("open-generic type"), "Actual: " + ex.Message);
             }
         }
 
@@ -973,7 +973,7 @@
             var container = ContainerFactory.New();
 
             // Act
-            container.RegisterCollection(typeof(IUserRepository), new IUserRepository[] { instance });
+            container.Collection.Register(typeof(IUserRepository), new IUserRepository[] { instance });
 
             // Assert
             var instances = container.GetAllInstances<IUserRepository>();
@@ -991,7 +991,7 @@
             var container = ContainerFactory.New();
 
             // Act
-            container.RegisterCollection(typeof(IUserRepository), new object[] { instance });
+            container.Collection.Register(typeof(IUserRepository), new object[] { instance });
 
             // Assert
             var instances = container.GetAllInstances<IUserRepository>();
@@ -1009,7 +1009,7 @@
             var container = ContainerFactory.New();
 
             // Act
-            container.RegisterCollection(typeof(IUserRepository), new SqlUserRepository[] { instance });
+            container.Collection.Register(typeof(IUserRepository), new SqlUserRepository[] { instance });
 
             // Assert
             var instances = container.GetAllInstances<IUserRepository>();
@@ -1026,7 +1026,7 @@
 
             // Act
             // IServiceEx is a valid registration, because it could be registered.
-            container.RegisterCollection<IUserRepository>(new[] { typeof(SqlUserRepository), typeof(IUserRepository) });
+            container.Collection.Register<IUserRepository>(new[] { typeof(SqlUserRepository), typeof(IUserRepository) });
         }
 
         [TestMethod]
@@ -1038,7 +1038,7 @@
             var container = ContainerFactory.New();
 
             // Act
-            container.RegisterCollection<IUserRepository>(types);
+            container.Collection.Register<IUserRepository>(types);
         }
 
         [TestMethod]
@@ -1050,7 +1050,7 @@
             var container = ContainerFactory.New();
 
             // Act
-            container.RegisterCollection<IUserRepository>(types);
+            container.Collection.Register<IUserRepository>(types);
         }
 
         [TestMethod]
@@ -1059,7 +1059,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IUserRepository>(new[] { typeof(SqlUserRepository) });
+            container.Collection.Register<IUserRepository>(new[] { typeof(SqlUserRepository) });
 
             // Act
             container.Verify();
@@ -1082,7 +1082,7 @@
             try
             {
                 // Act
-                container.RegisterCollection<IUserRepository>(new[]
+                container.Collection.Register<IUserRepository>(new[]
                 {
                     typeof(SqlUserRepository),
                     typeof(IDisposable)
@@ -1106,7 +1106,7 @@
 
             // Act
             // Registers a type that references the registration above.
-            container.RegisterCollection<IUserRepository>(new[] { typeof(SqlUserRepository), typeof(IUserRepository) });
+            container.Collection.Register<IUserRepository>(new[] { typeof(SqlUserRepository), typeof(IUserRepository) });
         }
 
         [TestMethod]
@@ -1116,7 +1116,7 @@
             var container = ContainerFactory.New();
 
             // Act
-            container.RegisterCollection<object>(typeof(IDisposable));
+            container.Collection.Register<object>(typeof(IDisposable));
         }
 
         [TestMethod]
@@ -1130,7 +1130,7 @@
                 Lifestyle.Transient.CreateRegistration<SqlUserRepository>(container)
             };
 
-            container.RegisterCollection(typeof(IUserRepository), registrations);
+            container.Collection.Register(typeof(IUserRepository), registrations);
 
             // Act
             var repository = container.GetAllInstances<IUserRepository>().Single();
@@ -1148,8 +1148,8 @@
             var registration =
                 Lifestyle.Singleton.CreateRegistration<SqlUserRepository>(container);
 
-            container.RegisterCollection(typeof(IUserRepository), new[] { registration });
-            container.RegisterCollection(typeof(object), new[] { registration });
+            container.Collection.Register(typeof(IUserRepository), new[] { registration });
+            container.Collection.Register(typeof(object), new[] { registration });
 
             // Act
             var instance1 = container.GetAllInstances<IUserRepository>().Single();
@@ -1165,7 +1165,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[]
+            container.Collection.Register<IPlugin>(new[]
             {
                 Lifestyle.Transient.CreateRegistration<PluginImpl>(container),
                 Lifestyle.Transient.CreateRegistration<PluginImpl2>(container)
@@ -1187,7 +1187,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<ICovariant<object>>(new[] { typeof(CovariantImplementation<string>) });
+            container.Collection.Register<ICovariant<object>>(new[] { typeof(CovariantImplementation<string>) });
 
             // Act
             var instances = container.GetAllInstances<ICovariant<object>>();
@@ -1202,7 +1202,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(ICovariant<object>), new[] { typeof(CovariantImplementation<string>) });
+            container.Collection.Register(typeof(ICovariant<object>), new[] { typeof(CovariantImplementation<string>) });
 
             // Act
             var instances = container.GetAllInstances<ICovariant<object>>();
@@ -1239,7 +1239,7 @@
 
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), registeredTypes);
+            container.Collection.Register(typeof(IEventHandler<>), registeredTypes);
 
             // Act
             Type[] actualHandlerTypes = container.GetAllInstances(resolvedHandlerType)
@@ -1279,7 +1279,7 @@
 
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), registeredTypes);
+            container.Collection.Register(typeof(IEventHandler<>), registeredTypes);
 
             // Act
             Type[] actualHandlerTypes = container.GetAllInstances(resolvedHandlerType)
@@ -1316,7 +1316,7 @@
 
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), registeredTypes);
+            container.Collection.Register(typeof(IEventHandler<>), registeredTypes);
 
             // Act
             Type[] actualHandlerTypes = container.GetAllInstances(resolvedHandlerType)
@@ -1355,7 +1355,7 @@
 
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), registeredTypes);
+            container.Collection.Register(typeof(IEventHandler<>), registeredTypes);
 
             // Act
             Type[] actualHandlerTypes = container.GetAllInstances(resolvedHandlerType)
@@ -1386,7 +1386,7 @@
             var container = ContainerFactory.New();
 
             // Act
-            Action action = () => container.RegisterCollection(typeof(IEventHandler<>), registeredTypes);
+            Action action = () => container.Collection.Register(typeof(IEventHandler<>), registeredTypes);
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
@@ -1413,7 +1413,7 @@
             // container, and it could be possible that someone does a registration like:
             // container.Register(typeof(EventHandlerWithConstructorContainingPrimitive<>), typeof(X))
             // where X is a type with one constructor.
-            container.RegisterCollection(typeof(IEventHandler<>), registeredTypes);
+            container.Collection.Register(typeof(IEventHandler<>), registeredTypes);
 
             // Act
             Action action = () => container.GetAllInstances(typeof(IEventHandler<StructEvent>)).ToArray();
@@ -1432,7 +1432,7 @@
 
             // Act
             container.Register<StructEventHandler>(Lifestyle.Singleton);
-            container.RegisterCollection(typeof(IEventHandler<>), new[] { typeof(StructEventHandler) });
+            container.Collection.Register(typeof(IEventHandler<>), new[] { typeof(StructEventHandler) });
 
             // Assert
             var handlers = container.GetAllInstances<IEventHandler<StructEvent>>();
@@ -1448,7 +1448,7 @@
 
             // Act
             container.Register<ClassConstraintEventHandler<AuditableEvent>>(Lifestyle.Singleton);
-            container.RegisterCollection(typeof(IEventHandler<>), new[]
+            container.Collection.Register(typeof(IEventHandler<>), new[]
             {
                 typeof(ClassConstraintEventHandler<AuditableEvent>)
             });
@@ -1469,7 +1469,7 @@
             container.Register(typeof(NewConstraintEventHandler<>),
                 typeof(NewConstraintEventHandler<>), Lifestyle.Singleton);
 
-            container.RegisterCollection(typeof(IEventHandler<>), new[]
+            container.Collection.Register(typeof(IEventHandler<>), new[]
             {
                 typeof(NewConstraintEventHandler<>)
             });
@@ -1492,7 +1492,7 @@
                 typeof(NewConstraintEventHandler<>),
                 Lifestyle.Singleton);
 
-            container.RegisterCollection(typeof(IEventHandler<>), new[]
+            container.Collection.Register(typeof(IEventHandler<>), new[]
             {
                 typeof(NewConstraintEventHandler<DefaultConstructorEvent>)
             });
@@ -1512,7 +1512,7 @@
             // Act
             container.Register<ClassConstraintEventHandler<AuditableEvent>>(Lifestyle.Singleton);
 
-            container.RegisterCollection(typeof(IEventHandler<>), new[]
+            container.Collection.Register(typeof(IEventHandler<>), new[]
             {
                 typeof(ClassConstraintEventHandler<>)
             });
@@ -1532,7 +1532,7 @@
             // Act
             container.Register<IEventHandler<AuditableEvent>, ClassConstraintEventHandler<AuditableEvent>>();
 
-            container.RegisterCollection(typeof(IEventHandler<>), new[]
+            container.Collection.Register(typeof(IEventHandler<>), new[]
             {
                 typeof(IEventHandler<>)
             });
@@ -1549,7 +1549,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), new[]
+            container.Collection.Register(typeof(IEventHandler<>), new[]
             {
                 // This closed generic type has an ILogger constructor dependency, but ILogger is not 
                 // registered, and Verify() should catch this.
@@ -1573,7 +1573,7 @@
 
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), new[]
+            container.Collection.Register(typeof(IEventHandler<>), new[]
             {
                 // This open generic type has an ILogger constructor dependency, but ILogger is not registered,
                 // and since it will be part of collection that contains a non-generic type (the collection
@@ -1598,7 +1598,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), new[]
+            container.Collection.Register(typeof(IEventHandler<>), new[]
             {
                 typeof(EventHandlerWithDependency<AuditableEvent, ILogger>)
             });
@@ -1622,9 +1622,9 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), Type.EmptyTypes);
+            container.Collection.Register(typeof(IEventHandler<>), Type.EmptyTypes);
 
-            container.RegisterCollection(typeof(UserServiceBase), new[]
+            container.Collection.Register(typeof(UserServiceBase), new[]
             {
                 // Depends on unregistered type IUserRepository
                 typeof(RealUserService)
@@ -1649,11 +1649,29 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
 
             // Act
             ICollection<IPlugin> collection =
                 container.GetInstance<ClassDependingOn<ICollection<IPlugin>>>().Dependency;
+
+            // Assert
+            Assert.AreEqual(2, collection.Count);
+            AssertThat.IsInstanceOfType(typeof(PluginImpl), collection.First());
+            AssertThat.IsInstanceOfType(typeof(PluginImpl2), collection.Second());
+        }
+
+        [TestMethod]
+        public void GetInstance_TypeDependingOnCollection_InjectsTheRegisteredCollection()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
+
+            // Act
+            Collection<IPlugin> collection =
+                container.GetInstance<ClassDependingOn<Collection<IPlugin>>>().Dependency;
 
             // Assert
             Assert.AreEqual(2, collection.Count);
@@ -1667,7 +1685,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
 
             container.RegisterDecorator(typeof(IPlugin), typeof(PluginDecorator));
 
@@ -1687,7 +1705,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>();
+            container.Collection.Register<IPlugin>(Type.EmptyTypes);
 
             // Act
             ICollection<IPlugin> collection =
@@ -1703,10 +1721,27 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
 
             // Act
             IList<IPlugin> list = container.GetInstance<ClassDependingOn<IList<IPlugin>>>().Dependency;
+
+            // Assert
+            Assert.AreEqual(2, list.Count);
+            AssertThat.IsInstanceOfType(typeof(PluginImpl), list[0]);
+            AssertThat.IsInstanceOfType(typeof(PluginImpl2), list[1]);
+        }
+
+        [TestMethod]
+        public void GetInstance_TypeDependingOnList_InjectsTheRegisteredList()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
+
+            // Act
+            List<IPlugin> list = container.GetInstance<ClassDependingOn<List<IPlugin>>>().Dependency;
 
             // Assert
             Assert.AreEqual(2, list.Count);
@@ -1720,7 +1755,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
 
             container.RegisterDecorator(typeof(IPlugin), typeof(PluginDecorator));
 
@@ -1740,7 +1775,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>();
+            container.Collection.Register<IPlugin>(Type.EmptyTypes);
 
             // Act
             IList<IPlugin> list =
@@ -1758,7 +1793,7 @@
 
             ICommand singletonCommand = new ConcreteCommand();
 
-            container.RegisterCollection<ICommand>(singletonCommand);
+            container.Collection.Register<ICommand>(singletonCommand);
 
             // Act
             var composite = container.GetInstance<CompositeCommand>();
@@ -1776,7 +1811,7 @@
 
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<ICommand>(expectedCommand);
+            container.Collection.Register<ICommand>(expectedCommand);
 
             // Act
             var composite = container.GetInstance<CompositeCommand>();
@@ -1791,7 +1826,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<ICommand>(new[] { typeof(ConcreteCommand) });
+            container.Collection.Register<ICommand>(new[] { typeof(ConcreteCommand) });
 
             // Act
             var composite = container.GetInstance<CompositeCommand>();
@@ -1807,24 +1842,168 @@
         }
 
         [TestMethod]
+        public void GetInstance_CalledMultipleTimesOnContainerControlledCollection_InjectsANewListOnEachRequest()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            container.RegisterSingleton<ConcreteCommand>();
+
+            container.Collection.Register<ICommand>(new[] { typeof(ConcreteCommand) });
+
+            // Act
+            var injectedList = container.GetInstance<ServiceDependingOn<List<ICommand>>>().Dependency;
+
+            injectedList[0] = null;
+
+            injectedList = container.GetInstance<ServiceDependingOn<List<ICommand>>>().Dependency;
+
+            // Assert
+            Assert.IsNotNull(injectedList[0],
+                "The element in the array is expected NOT to be null. When it is null, it means that the " +
+                "array has been cached.");
+        }
+
+        [TestMethod]
+        public void GetInstance_AResolvedCollectionOfT_CanNotBeChanged()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            container.RegisterSingleton<ConcreteCommand>();
+
+            container.Collection.Register<ICommand>(new[] { typeof(ConcreteCommand) });
+
+            var collection = container.GetInstance<Collection<ICommand>>();
+
+            // Act
+            Action action = () => collection[0] = new ConcreteCommand();
+
+            // Assert
+            Assert.ThrowsException<NotSupportedException>(action,
+                "Changing the collection should be blocked by Simple Injector.");
+        }
+
+        [TestMethod]
         public void GetInstance_CalledMultipleTimesOnContainerControlledSingletons_StillInjectsANewArrayOnEachRequest()
         {
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<ICommand>(new ConcreteCommand());
+            container.Collection.Register<ICommand>(new ConcreteCommand());
 
             // Act
-            var composite = container.GetInstance<CompositeCommand>();
+            ICommand[] commands = container.GetInstance<ServiceDependingOn<ICommand[]>>().Dependency;
 
-            composite.Commands[0] = null;
+            commands[0] = null;
 
-            composite = container.GetInstance<CompositeCommand>();
+            commands = container.GetInstance<ServiceDependingOn<ICommand[]>>().Dependency;
 
             // Assert
-            Assert.IsNotNull(composite.Commands[0],
+            Assert.IsNotNull(commands[0],
                 "The element in the array is expected NOT to be null. When it is null, it means that the " +
                 "array has been cached.");
+        }
+
+        [TestMethod]
+        public void GetInstance_ResolvingACollectionOfT_IsSingleton()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            container.Collection.Register<ICommand>(new ConcreteCommand());
+
+            // Act
+            Collection<ICommand> commands1 = container.GetInstance<Collection<ICommand>>();
+            Collection<ICommand> commands2 = container.GetInstance<Collection<ICommand>>();
+
+            // Assert
+            Assert.AreSame(commands1, commands2,
+                "Collection<T> is just a wrapper for a container controlled collection IList<T>. And should therefore be a singleton.");
+
+            Assert.AreSame(Lifestyle.Singleton, container.GetRegistration(typeof(Collection<ICommand>)).Lifestyle);
+        }
+
+        public class MyList<T> : IList<T>
+        {
+            public T this[int index]
+            {
+                get => default(T);
+                set { }
+            }
+
+            public int Count => throw new NotImplementedException();
+
+            public bool IsReadOnly => throw new NotImplementedException();
+
+            public void Add(T item)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Clear()
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool Contains(T item)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void CopyTo(T[] array, int arrayIndex)
+            {
+                throw new NotImplementedException();
+            }
+
+            public IEnumerator<T> GetEnumerator()
+            {
+                throw new NotImplementedException();
+            }
+
+            public int IndexOf(T item)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Insert(int index, T item)
+            {
+                throw new NotImplementedException();
+            }
+
+            public bool Remove(T item)
+            {
+                throw new NotImplementedException();
+            }
+
+            public void RemoveAt(int index)
+            {
+                throw new NotImplementedException();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        [TestMethod]
+        public void GetInstance_CollectionOfT_FunctionsAsAStream()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            container.Collection.Register<ICommand>(typeof(ConcreteCommand));
+
+            // Act
+            Collection<ICommand> commands = container.GetInstance<Collection<ICommand>>();
+
+            // Assert
+            Assert.AreNotSame(commands[0], commands[0],
+                "Requesting an instance from the collection thould cause a callback into the Container " +
+                "causing the type to be resolved again.");
+
+            Assert.AreSame(Lifestyle.Singleton, container.GetRegistration(typeof(Collection<ICommand>)).Lifestyle);
         }
 
         [TestMethod]
@@ -1838,7 +2017,7 @@
             // Add a first command
             commands.Add(new ConcreteCommand());
 
-            container.RegisterCollection<ICommand>(commands);
+            container.Collection.Register<ICommand>(commands);
 
             container.GetInstance<CompositeCommand>();
 
@@ -1860,13 +2039,47 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<ICommand>(new[] { typeof(ConcreteCommand) });
+            container.Collection.Register<ICommand>(new[] { typeof(ConcreteCommand) });
 
             // Act
             var registration = container.GetRegistration(typeof(ICommand[]));
 
             // Assert
-            Assert.AreEqual(Lifestyle.Transient, registration.Lifestyle);
+            Assert.AreEqual(Lifestyle.Transient, registration.Lifestyle,
+                "Array must be resolved as transient, because it is a mutable type.");
+        }
+
+        [TestMethod]
+        public void GetRegistration_RequestingListRegistrationContainerControlledCollection_HasTheTransientLifestyle()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            container.Collection.Register<ICommand>(new[] { typeof(ConcreteCommand) });
+
+            // Act
+            var registration = container.GetRegistration(typeof(List<ICommand>));
+
+            // Assert
+            Assert.AreEqual(Lifestyle.Transient, registration.Lifestyle,
+                "List must be resolved as transient, because it is a mutable type.");
+        }
+
+        [TestMethod]
+        public void GetRegistration_RequestingCollectionRegistrationContainerControlledCollection_HasTheTransientLifestyle()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            container.Collection.Register<ICommand>(new[] { typeof(ConcreteCommand) });
+
+            // Act
+            var registration = container.GetRegistration(typeof(List<ICommand>));
+
+            // Assert
+            Assert.AreEqual(Lifestyle.Transient, registration.Lifestyle,
+                "Although Collection technically doesn't have to a a transient, we chose to keep it that way. " +
+                "See #545 for more details.");
         }
 
         [TestMethod]
@@ -1877,7 +2090,7 @@
 
             IEnumerable<ICommand> commands = new List<ICommand> { new ConcreteCommand() };
 
-            container.RegisterCollection<ICommand>(commands);
+            container.Collection.Register<ICommand>(commands);
 
             // Act
             var registration = container.GetRegistration(typeof(ICommand[]));
@@ -1894,7 +2107,7 @@
 
             container.Register<ConcreteCommand>(Lifestyle.Singleton);
 
-            container.RegisterCollection<ICommand>(new[] { typeof(ConcreteCommand) });
+            container.Collection.Register<ICommand>(new[] { typeof(ConcreteCommand) });
 
             // Act
             var registration = container.GetRegistration(typeof(ICommand[]));
@@ -1921,7 +2134,7 @@
             };
 
             // IEventHandler<in TEvent> is contravariant.
-            container.RegisterCollection(typeof(IEventHandler<>), expectedHandlerTypes);
+            container.Collection.Register(typeof(IEventHandler<>), expectedHandlerTypes);
 
             // Act
             var handlers = container.GetAllInstances<IEventHandler<CustomerMovedAbroadEvent>>();
@@ -1935,17 +2148,23 @@
         [TestMethod]
         public void GetAllInstances_RequestingAContravariantInterfaceWhenARegistrationForAClosedServiceTypeIsMade_ResolvesTheAssignableImplementation()
         {
+            // NOTE: CustomerMovedAbroadEvent inherits from CustomerMovedEvent
+            CustomerMovedEvent e = new CustomerMovedAbroadEvent();
+
+            // NOTE: IEventHandler is contravariant.
+            IEventHandler<CustomerMovedEvent> h1 = new CustomerMovedEventHandler();
+            IEventHandler<CustomerMovedAbroadEvent> h2 = h1;
+
             // Arrange
             var container = ContainerFactory.New();
 
-            // NOTE: CustomerMovedAbroadEvent inherits from CustomerMovedEvent.
             var expectedHandlerTypes = new[]
             {
                 typeof(CustomerMovedEventHandler), // IEventHandler<CustomerMovedEvent>
             };
 
             // IEventHandler<in TEvent> is contravariant.
-            container.RegisterCollection<IEventHandler<CustomerMovedEvent>>(expectedHandlerTypes);
+            container.Collection.Register<IEventHandler<CustomerMovedEvent>>(expectedHandlerTypes);
 
             // Act
             var handlers = container.GetAllInstances<IEventHandler<CustomerMovedAbroadEvent>>();
@@ -1965,7 +2184,7 @@
             IEnumerable<Registration> registrations = null;
 
             // Act
-            Action action = () => container.RegisterCollection<IPlugin>(registrations);
+            Action action = () => container.Collection.Register<IPlugin>(registrations);
 
             // Assert
             AssertThat.ThrowsWithParamName<ArgumentNullException>("registrations", action);
@@ -1984,12 +2203,12 @@
             };
 
             // IEventHandler<in TEvent> is contravariant.
-            container.RegisterCollection(typeof(IEventHandler<CustomerMovedAbroadEvent>), new[]
+            container.Collection.Register(typeof(IEventHandler<CustomerMovedAbroadEvent>), new[]
             {
                 typeof(CustomerMovedAbroadEventHandler)
             });
 
-            container.RegisterCollection(typeof(IEventHandler<CustomerMovedEvent>), new Type[]
+            container.Collection.Register(typeof(IEventHandler<CustomerMovedEvent>), new Type[]
             {
                 typeof(CustomerMovedEventHandler)
             });
@@ -2004,7 +2223,7 @@
                 IEventHandler<CustomerMovedAbroadEvent> are expected to 'flow' to the 
                 IEventHandler<CustomerMovedAbroadEvent> collection, because the expected way for users to
                 register generic types by supplying the RegisterCollection(Type, Type[]) overload as follows:
-                container.RegisterManyForOpenGeneric(type, container.RegisterCollection, assemblies)."
+                container.RegisterManyForOpenGeneric(type, container.Collection.Register, assemblies)."
                 .TrimInside() +
                 "Actual: " + actualHandlerTypes.ToFriendlyNamesText());
         }
@@ -2016,7 +2235,7 @@
             // Arrange
             var container = new Container();
 
-            container.RegisterCollection<ITimeProvider>(new[] { typeof(RealTimeProvider) });
+            container.Collection.Register<ITimeProvider>(new[] { typeof(RealTimeProvider) });
 
             container.Verify();
 
@@ -2034,7 +2253,7 @@
             container.Register<IEnumerable<IEventHandler<AuditableEvent>>>(() => null);
 
             // Act
-            Action action = () => container.RegisterCollection<IEventHandler<AuditableEvent>>(new[]
+            Action action = () => container.Collection.Register<IEventHandler<AuditableEvent>>(new[]
             {
                 typeof(AuditableEventEventHandler)
             });
@@ -2053,18 +2272,18 @@
 
             var uncontrolledCollection = Enumerable.Empty<IEventHandler<AuditableEvent>>();
 
-            container.RegisterCollection<IEventHandler<AuditableEvent>>(uncontrolledCollection);
+            container.Collection.Register<IEventHandler<AuditableEvent>>(uncontrolledCollection);
 
             // Act
-            Action action = () => container.RegisterCollection<IEventHandler<AuditableEvent>>(new[]
+            Action action = () => container.Collection.Register<IEventHandler<AuditableEvent>>(new[]
                 {
                     typeof(AuditableEventEventHandler)
                 });
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<NotSupportedException>(@"
-                You already made a registration for the IEventHandler<TEvent> type using one of the 
-                RegisterCollection overloads that registers container-uncontrolled collections, while this 
+                You already made a registration for IEventHandler<TEvent> using one of the 
+                Container.Collection.Register overloads that registers container-uncontrolled collections, while this 
                 method registers container-controlled collections. Mixing calls is not supported."
                 .TrimInside(),
                 action);
@@ -2078,15 +2297,15 @@
 
             var uncontrolledCollection = Enumerable.Empty<IEventHandler<AuditableEvent>>();
 
-            container.RegisterCollection<IEventHandler<AuditableEvent>>(new[] { typeof(AuditableEventEventHandler) });
+            container.Collection.Register<IEventHandler<AuditableEvent>>(new[] { typeof(AuditableEventEventHandler) });
 
             // Act
-            Action action = () => container.RegisterCollection<IEventHandler<AuditableEvent>>(uncontrolledCollection);
+            Action action = () => container.Collection.Register<IEventHandler<AuditableEvent>>(uncontrolledCollection);
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<NotSupportedException>(@"
-                You already made a registration for the IEventHandler<TEvent> type using one of the 
-                RegisterCollection overloads that registers container-controlled collections, while this 
+                You already made a registration for IEventHandler<TEvent> using one of the 
+                Container.Collection.Register overloads that registers container-controlled collections, while this 
                 method registers container-uncontrolled collections. Mixing calls is not supported."
                 .TrimInside(),
                 action);
@@ -2104,7 +2323,7 @@
 
             // Act
             Action action =
-                () => container.RegisterCollection<IEventHandler<AuditableEvent>>(new[] { typeof(AuditableEventEventHandler) });
+                () => container.Collection.Register<IEventHandler<AuditableEvent>>(new[] { typeof(AuditableEventEventHandler) });
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<NotSupportedException>(
@@ -2118,7 +2337,7 @@
             // Arrange
             var container = new Container();
 
-            container.RegisterCollection<IEventHandler<AuditableEvent>>(new[] { typeof(AuditableEventEventHandler) });
+            container.Collection.Register<IEventHandler<AuditableEvent>>(new[] { typeof(AuditableEventEventHandler) });
 
             // Act
             Action action = () => container.Register<IEnumerable<IEventHandler<AuditableEvent>>>(() => null);
@@ -2135,7 +2354,7 @@
             // Arrange
             var container = new Container();
 
-            container.RegisterCollection<IEventHandler<AuditableEvent>>(new AuditableEventEventHandler());
+            container.Collection.Register<IEventHandler<AuditableEvent>>(new AuditableEventEventHandler());
 
             // Act
             Action action = () => container.Register<IEnumerable<IEventHandler<AuditableEvent>>>(() => null);
@@ -2155,7 +2374,7 @@
             container.Register<IEnumerable<IEventHandler<AuditableEvent>>>(() => null);
 
             // Act
-            Action action = () => container.RegisterCollection<IEventHandler<AuditableEvent>>(new AuditableEventEventHandler());
+            Action action = () => container.Collection.Register<IEventHandler<AuditableEvent>>(new AuditableEventEventHandler());
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<NotSupportedException>(
@@ -2169,10 +2388,10 @@
             // Arrange
             var container = new Container();
 
-            container.RegisterCollection<IEventHandler<AuditableEvent>>(new AuditableEventEventHandler());
+            container.Collection.Register<IEventHandler<AuditableEvent>>(new AuditableEventEventHandler());
 
             // Act
-            Action action = () => container.RegisterCollection<IEventHandler<AuditableEvent>>(new[]
+            Action action = () => container.Collection.Register<IEventHandler<AuditableEvent>>(new[]
             {
                 typeof(AuditableEventEventHandler)
             });
@@ -2184,7 +2403,7 @@
 
             AssertThat.ThrowsWithExceptionMessageContains<InvalidOperationException>(
                 "In case it is your goal to append items to an already registered collection, please use " +
-                "the Container.Collections.AppendTo method overloads.",
+                "the Container.Collection.Append method overloads.",
                 action);
         }
 
@@ -2211,7 +2430,7 @@
                 from type in registeredTypes
                 select Lifestyle.Transient.CreateRegistration(type, container);
 
-            container.RegisterCollection(typeof(IEventHandler<>), registrations);
+            container.Collection.Register(typeof(IEventHandler<>), registrations);
 
             // Act
             var auditableHandlers = container.GetAllInstances<IEventHandler<AuditableEvent>>().ToArray();
@@ -2230,11 +2449,11 @@
 
             container.Options.AllowOverridingRegistrations = true;
 
-            container.RegisterCollection<IEventHandler<AuditableEvent>>(new AuditableEventEventHandler<AuditableEvent>());
+            container.Collection.Register<IEventHandler<AuditableEvent>>(new AuditableEventEventHandler<AuditableEvent>());
 
             // Act
             // Should Completely override the previous registration
-            container.RegisterCollection<IEventHandler<AuditableEvent>>(expectedHandlerTypes);
+            container.Collection.Register<IEventHandler<AuditableEvent>>(expectedHandlerTypes);
 
             // Assert
             var handlers = container.GetAllInstances<IEventHandler<AuditableEvent>>();
@@ -2244,6 +2463,57 @@
             Assert.IsTrue(expectedHandlerTypes.SequenceEqual(actualHandlerTypes),
                 "The original registration was expected to be replaced completely. Actual: " +
                 actualHandlerTypes.ToFriendlyNamesText());
+        }
+
+        // Regression: #627 In case Registration classes where added where the ImplementationType was the abstraction,
+        // the check whether service is assignable from the implementation type would fail, due to a bug in the Types class.
+        [TestMethod]
+        public void CollectionRegister_SupplyingRegistrationsForVariantAbstractionWithOnlyAbstractionKnown_SuccessfullyRegistersAndResolvesThem()
+        {
+            // Arrange
+            var container = new Container();
+
+            IEventHandler<BaseClass> impl = new GenericEventHandler<BaseClass>();
+
+            // Act
+            // This call failed.
+            container.Collection.Register<IEventHandler<DerivedA>>(new[]
+            {
+                Lifestyle.Transient.CreateRegistration<IEventHandler<BaseClass>>(() => impl, container),
+                Lifestyle.Transient.CreateRegistration<IEventHandler<DerivedA>>(() => impl, container)
+            });
+
+            var deriveds = container.GetAllInstances<IEventHandler<DerivedA>>();
+            var bases = container.GetAllInstances<IEventHandler<BaseClass>>();
+
+            // Assert
+            Assert.AreEqual(2, deriveds.Count(), "Two registrations were made for IContra<Derived>.");
+            Assert.AreEqual(0, bases.Count(), "No registrations were made for IContra<Base>.");
+        }
+
+        // Test for #638.
+        [TestMethod]
+        public void GetAllInstances_TwoOpenGenericCovariantsWithTypeConstraintsRegistered_ResolvesExpectedInstances()
+        {
+            // Arrange
+            var container = new Container();
+
+            container.Collection.Register(
+                serviceType: typeof(ICovariant<>),
+                serviceTypes: new[] { typeof(BaseClassCovariant<>), typeof(DerivedACovariant<>) });
+
+            // Act
+            var deriveds = container.GetAllInstances<ICovariant<DerivedA>>();
+            var bases = container.GetAllInstances<ICovariant<BaseClass>>();
+
+            // Assert
+            AssertThat.SequenceEquals(
+                expectedTypes: new[] { typeof(BaseClassCovariant<DerivedA>), typeof(DerivedACovariant<DerivedA>) },
+                actualTypes: deriveds.Select(d => d.GetType()).ToArray());
+
+            AssertThat.SequenceEquals(
+                expectedTypes: new[] { typeof(BaseClassCovariant<BaseClass>) },
+                actualTypes: bases.Select(d => d.GetType()).ToArray());
         }
 
         private static void Assert_IsNotAMutableCollection<T>(IEnumerable<T> collection)
@@ -2269,7 +2539,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(
+            container.Collection.Register(
                 typeof(TService).GetGenericTypeDefinition(),
                 openGenericTypesToRegister);
 
@@ -2350,6 +2620,14 @@
         }
 
         public class DerivedBConverter : ITypeConverter<DerivedB>
+        {
+        }
+
+        public class BaseClassCovariant<T> : ICovariant<T> where T : BaseClass
+        {
+        }
+
+        public class DerivedACovariant<T> : ICovariant<T> where T : DerivedA
         {
         }
 

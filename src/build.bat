@@ -1,19 +1,48 @@
 @ECHO OFF
 
-IF "%1"=="" (
+for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /format:list') do set datetime=%%I
+
+set buildNumber=0 
+set copyrightYear=%datetime:~0,4%
+set version=%1
+set prereleasePostfix=
+
+IF "%2"=="1" ( 
+	set step=%2
+) ELSE IF "%2"=="2" (
+	set step=%2
+) ELSE IF "%2"=="3" (
+	set step=%2
+) ELSE IF "%2"=="4" (
+	set step=%2
+) ELSE IF "%2"=="5" (
+	set step=%2
+) ELSE (
+	set step=%3
+	set prereleasePostfix=%2
+)
+
+set inputOk=true
+IF "%version%"=="" ( 
+	set inputOk=false
+) ELSE IF "%step%"=="" (
+	set inputOk=false
+)
+
+echo step: %step%
+echo version: %version%
+echo prereleasePostfix: %prereleasePostfix%
+
+IF "%inputOk%"=="false" (
 	rem I would have loved doing this all in one single step, but for some reason, I can't seem to build using MSBuild
 	rem while running from the command line using MSBuild 2017. See https://stackoverflow.com/questions/47002571/.
 	rem That's why this build file must be called multiple times.
-    echo Please provide a number of the build step. Starting with 1. Example: "%0 1
+    echo Please provide both the version number and the number of the of the build step. Starting with 1.
+	echo Usage: "%0 [version] {-[prerelease postfix]} [step]
+	echo Example1: "%0 4.0.0 -beta1 1
+	echo Example2: "%0 4.0.0 1
     goto :EOF
 )
-
-set step="%1"
-
-set version=4.1.0
-set prereleasePostfix=
-set buildNumber=0 
-set copyrightYear=2018
 
 set version_Core=%version%
 set version_Packaging=%version_Core%
@@ -72,7 +101,7 @@ set numeric_version_Packaging=%version_Packaging%.%buildNumber%
 
 if not exist SimpleInjector.snk goto :strong_name_key_missing
 
-IF %step%=="1" (
+IF %step%==1 (
 	echo Running step 1
 	if exist Releases\v%named_version% goto :release_directory_already_exists
 
@@ -114,7 +143,7 @@ IF %step%=="1" (
     goto :EOF
 )
 
-IF %step%=="2" (
+IF %step%==2 (
 	echo RUNNING TESTS IN PARTIAL TRUST
 
 	set testDll=SimpleInjector.Tests.Unit\bin\Release\net451\SimpleInjector.Tests.Unit.dll
@@ -127,7 +156,7 @@ IF %step%=="2" (
     goto :EOF	
 )
 
-IF %step%=="3" (
+IF %step%==3 (
 	echo BUILD DOCUMENTATION
 
 	%msbuild% "SimpleInjector.Documentation\SimpleInjector.Documentation.shfbproj" /nologo /p:Configuration=%configuration% /p:DefineConstants="%defineConstantsNet%"
@@ -152,9 +181,10 @@ IF %step%=="3" (
     goto :EOF	
 )
 
-IF %step%=="4" (
+IF %step%==4 (
 	echo CREATING NUGET PACKAGES
-
+	rmdir Releases\temp /s /q
+	
 	mkdir Releases\temp
 	%xcopy% %nugetTemplatePath%\.NET\SimpleInjector Releases\temp /E /H
 	%attrib% -r "%CD%\Releases\temp\*.*" /s /d
@@ -167,6 +197,8 @@ IF %step%=="4" (
 	copy SimpleInjector\bin\Release\netstandard1.0\SimpleInjector.xml "Releases\temp\lib\netstandard1.0\SimpleInjector.xml"
 	copy SimpleInjector\bin\Release\netstandard1.3\SimpleInjector.dll "Releases\temp\lib\netstandard1.3\SimpleInjector.dll"
 	copy SimpleInjector\bin\Release\netstandard1.3\SimpleInjector.xml "Releases\temp\lib\netstandard1.3\SimpleInjector.xml"
+	copy SimpleInjector\bin\Release\netstandard2.0\SimpleInjector.dll "Releases\temp\lib\netstandard2.0\SimpleInjector.dll"
+	copy SimpleInjector\bin\Release\netstandard2.0\SimpleInjector.xml "Releases\temp\lib\netstandard2.0\SimpleInjector.xml"
 	%replace% /source:Releases\temp\SimpleInjector.nuspec {version} %named_version_Core%
 	%replace% /source:Releases\temp\SimpleInjector.nuspec {year} %copyrightYear%
 	%replace% /source:Releases\temp\package\services\metadata\core-properties\c8082e2254fe4defafc3b452026f048d.psmdcp {version} %named_version_Core%
@@ -287,29 +319,27 @@ IF %step%=="4" (
     goto :EOF	
 )
 
-IF %step%=="5" (
-	set version_restore_line="    <VersionPrefix>4.0.0</VersionPrefix>"
-
+IF %step%==5 (
 	echo RESTORE VERSION NUMBERS
-	%replace% /line "<VersionPrefix>" %version_restore_line% /source:SimpleInjector\SimpleInjector.csproj
-	%replace% /line "<VersionPrefix>" %version_restore_line% /source:SimpleInjector.Integration.AspNetCore\SimpleInjector.Integration.AspNetCore.csproj
-	%replace% /line "<VersionPrefix>" %version_restore_line% /source:SimpleInjector.Integration.AspNetCore.Mvc.Core\SimpleInjector.Integration.AspNetCore.Mvc.Core.csproj
-	%replace% /line "<VersionPrefix>" %version_restore_line% /source:SimpleInjector.Integration.AspNetCore.Mvc\SimpleInjector.Integration.AspNetCore.Mvc.csproj
-	%replace% /line "<VersionPrefix>" %version_restore_line% /source:SimpleInjector.Integration.Wcf\SimpleInjector.Integration.Wcf.csproj
-	%replace% /line "<VersionPrefix>" %version_restore_line% /source:SimpleInjector.Integration.Web\SimpleInjector.Integration.Web.csproj
-	%replace% /line "<VersionPrefix>" %version_restore_line% /source:SimpleInjector.Integration.Web.Mvc\SimpleInjector.Integration.Web.Mvc.csproj
-	%replace% /line "<VersionPrefix>" %version_restore_line% /source:SimpleInjector.Integration.WebApi\SimpleInjector.Integration.WebApi.csproj
-	%replace% /line "<VersionPrefix>" %version_restore_line% /source:SimpleInjector.Packaging\SimpleInjector.Packaging.csproj
+	%replace% /line "<VersionPrefix>" "    <VersionPrefix>4.0.0</VersionPrefix>" /source:SimpleInjector\SimpleInjector.csproj
+	%replace% /line "<VersionPrefix>" "    <VersionPrefix>4.0.0</VersionPrefix>" /source:SimpleInjector.Integration.AspNetCore\SimpleInjector.Integration.AspNetCore.csproj
+	%replace% /line "<VersionPrefix>" "    <VersionPrefix>4.0.0</VersionPrefix>" /source:SimpleInjector.Integration.AspNetCore.Mvc.Core\SimpleInjector.Integration.AspNetCore.Mvc.Core.csproj
+	%replace% /line "<VersionPrefix>" "    <VersionPrefix>4.0.0</VersionPrefix>" /source:SimpleInjector.Integration.AspNetCore.Mvc\SimpleInjector.Integration.AspNetCore.Mvc.csproj
+	%replace% /line "<VersionPrefix>" "    <VersionPrefix>4.0.0</VersionPrefix>" /source:SimpleInjector.Integration.Wcf\SimpleInjector.Integration.Wcf.csproj
+	%replace% /line "<VersionPrefix>" "    <VersionPrefix>4.0.0</VersionPrefix>" /source:SimpleInjector.Integration.Web\SimpleInjector.Integration.Web.csproj
+	%replace% /line "<VersionPrefix>" "    <VersionPrefix>4.0.0</VersionPrefix>" /source:SimpleInjector.Integration.Web.Mvc\SimpleInjector.Integration.Web.Mvc.csproj
+	%replace% /line "<VersionPrefix>" "    <VersionPrefix>4.0.0</VersionPrefix>" /source:SimpleInjector.Integration.WebApi\SimpleInjector.Integration.WebApi.csproj
+	%replace% /line "<VersionPrefix>" "    <VersionPrefix>4.0.0</VersionPrefix>" /source:SimpleInjector.Packaging\SimpleInjector.Packaging.csproj
 	
 	echo Done!
 	GOTO :EOF	
 )
 
-echo Unknown step number.
+echo Unknown step number %step%.
 GOTO :EOF
 
 :release_directory_already_exists
-echo The release directory already exists.
+echo The release directory v%named_version% already exists.
 GOTO :EOF
 
 :strong_name_key_missing

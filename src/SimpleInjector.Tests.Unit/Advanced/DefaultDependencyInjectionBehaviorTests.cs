@@ -21,7 +21,7 @@
             // Assert
             AssertThat.ThrowsWithParamName<ArgumentNullException>("consumer", action);
         }
-        
+
         [TestMethod]
         public void DependencyInjectionBehavior_CustomBehaviorThatReturnsNull_ThrowsExpressiveException()
         {
@@ -40,7 +40,7 @@
             Action action = () => container.GetInstance<RealUserService>();
 
             AssertThat.ThrowsWithExceptionMessageContains<ActivationException>(
-                "FakeDependencyInjectionBehavior that was registered through " + 
+                "FakeDependencyInjectionBehavior that was registered through " +
                 "the Container.Options.DependencyInjectionBehavior property, returned a null reference",
                 action);
         }
@@ -50,7 +50,7 @@
         {
             // Arrange
             string expectedString = string.Format(@"
-                The constructor of type {0}.{1} contains parameter 'intArgument' of type Int32 which can not 
+                The constructor of type {0}.{1} contains parameter 'intArgument' of type Int32, which can not 
                 be used for constructor injection because it is a value type.",
                 this.GetType().Name,
                 typeof(TypeWithSinglePublicConstructorWithValueTypeParameter).Name)
@@ -82,7 +82,7 @@
         {
             // Arrange
             string expectedString = string.Format(@"
-                The constructor of type {0}.{1} contains parameter 'stringArgument' of type String which can 
+                The constructor of type {0}.{1} contains parameter 'stringArgument' of type String, which can 
                 not be used for constructor injection.",
                 this.GetType().Name,
                 typeof(TypeWithSinglePublicConstructorWithStringTypeParameter).Name)

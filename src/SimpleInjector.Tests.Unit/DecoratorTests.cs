@@ -129,7 +129,7 @@
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
-                "The supplied decorator NonGenericServiceDecorator<T> is an open generic type definition",
+                "The supplied decorator NonGenericServiceDecorator<T> is an open-generic type definition",
                 action);
 
             AssertThat.ThrowsWithParamName("decoratorType", action);
@@ -196,9 +196,8 @@
         {
             // Arrange
             string expectedMessage = @"
-                Registering a closed generic service type with an open generic decorator is not supported. 
-                Instead, register the service type as open generic, and the decorator as closed generic 
-                type."
+                Registering a closed-generic service type with an open-generic decorator is not supported. 
+                Instead, register the service type as open generic, and the decorator type as closed generic."
                 .TrimInside();
 
             var container = ContainerFactory.New();
@@ -314,8 +313,8 @@
         public void GetInstance_OnDecoratedType_GetsHandledAsExpected()
         {
             // Arrange
-            var expectedTypeChain = new[] 
-            { 
+            var expectedTypeChain = new[]
+            {
                 typeof(LogExceptionCommandHandlerDecorator<RealCommand>),
                 typeof(RealCommandHandler),
             };
@@ -1186,7 +1185,7 @@
             var decorator2 = decorator1.Decorated;
 
             // Assert
-            AssertThat.IsInstanceOfType(typeof(TransactionHandlerDecorator<RealCommand>), decorator2, 
+            AssertThat.IsInstanceOfType(typeof(TransactionHandlerDecorator<RealCommand>), decorator2,
                 "Since the decorator is registered twice, it should wrap the decoratee twice.");
 
             var decoratee = ((TransactionHandlerDecorator<RealCommand>)decorator2).Decorated;
@@ -1331,7 +1330,7 @@
             var hybrid = Lifestyle.CreateHybrid(() => true, Lifestyle.Transient, Lifestyle.Singleton);
 
             var expectedRelationships = new[]
-            {   
+            {
                 new RelationshipInfo
                 {
                     Lifestyle = hybrid,
@@ -1645,7 +1644,7 @@
             // Arrange
             var container = new Container();
 
-            container.RegisterCollection<ICommandHandler<RealCommand>>(new[] 
+            container.Collection.Register<ICommandHandler<RealCommand>>(new[]
             {
                 typeof(NullCommandHandler<RealCommand>),
                 typeof(StubCommandHandler)
@@ -2093,9 +2092,9 @@
         public void GetInstance_RegisterDecoratorWithNonGenericServiceAndFactoryReturningAnOpenGenericDecoratorType_ThrowsExpectedException()
         {
             // Arrange
-            string expectedMessage = @"The registered decorator type factory returned open generic type 
+            string expectedMessage = @"The registered decorator type factory returned open-generic type 
                 NonGenericServiceDecorator<T> while the registered service type INonGenericService is not 
-                generic, making it impossible for a closed generic decorator type to be constructed"
+                generic, making it impossible for a closed-generic decorator type to be constructed"
                 .TrimInside();
 
             var container = new Container();
@@ -2426,7 +2425,7 @@
             // Assert
             AssertThat.IsInstanceOfType(decoratorType, logger);
         }
-        
+
         [TestMethod]
         public void RegisterDecorator_WithPartialOpenGenericServiceType_ThrowsExpectedMessage()
         {
@@ -2442,8 +2441,8 @@
             AssertThat.ThrowsWithParamName<ArgumentException>("serviceType", action);
 
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(@"
-                The supplied type 'ICommandHandler<List<T>>' is a partially-closed generic type, which is not 
-                supported by this method. Please supply the open generic type 'ICommandHandler<>' instead."
+                The supplied type 'ICommandHandler<List<T>>' is a partially closed generic type, which is not 
+                supported by this method. Please supply the open-generic type 'ICommandHandler<>' instead."
                 .TrimInside(),
                 action);
         }
@@ -2467,10 +2466,36 @@
             AssertThat.ThrowsWithParamName<ArgumentException>("serviceType", action);
 
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(@"
-                The supplied type 'ICommandHandler<TCommand>' is a partially-closed generic type, which is not 
-                supported by this method. Please supply the open generic type 'ICommandHandler<>' instead."
+                The supplied type 'ICommandHandler<TCommand>' is a partially closed generic type, which is not 
+                supported by this method. Please supply the open-generic type 'ICommandHandler<>' instead."
                 .TrimInside(),
                 action);
+        }
+
+        [TestMethod]
+        public void InjectedScopeDecorateeFactory_WhenSuppliedWithAScopeInstance_CreatesScopedInstancesBasedOnThatScope()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+            container.Options.DefaultScopedLifestyle = ScopedLifestyle.Flowing;
+
+            container.Register<ICommandHandler<int>, NullCommandHandler<int>>(Lifestyle.Scoped);
+            container.RegisterDecorator(typeof(ICommandHandler<>), typeof(ScopedCommandHandlerProxy<>),
+                Lifestyle.Singleton);
+
+            var proxy = (ScopedCommandHandlerProxy<int>)container.GetInstance<ICommandHandler<int>>();
+            var factory = proxy.DecorateeFactory;
+
+            // Act
+            var scope1 = new Scope(container);
+            var handler1 = proxy.DecorateeFactory(scope1);
+            var handler2 = proxy.DecorateeFactory(scope1);
+            var handler3 = proxy.DecorateeFactory(new Scope(container));
+
+            // Assert
+            Assert.IsInstanceOfType(handler1, typeof(NullCommandHandler<int>));
+            Assert.AreSame(handler1, handler2, "Handler is expected to be Scoped but was transient.");
+            Assert.AreNotSame(handler2, handler3, "Handler is expected to be Scoped but was singleton.");
         }
 
         private static KnownRelationship GetValidRelationship()
@@ -2486,6 +2511,16 @@
         {
             public void Intercept(IInvocation invocation)
             {
+            }
+        }
+
+        public sealed class ScopedCommandHandlerProxy<T> : ICommandHandler<T>
+        {
+            public readonly Func<Scope, ICommandHandler<T>> DecorateeFactory;
+
+            public ScopedCommandHandlerProxy(Func<Scope, ICommandHandler<T>> decorateeFactory)
+            {
+                this.DecorateeFactory = decorateeFactory;
             }
         }
     }
@@ -2722,15 +2757,15 @@
 
         public DependencyInfo Dependency { get; set; }
 
-        internal static bool EqualsTo(RelationshipInfo info, KnownRelationship other) => 
-            info.ImplementationType == other.ImplementationType 
-            && info.Lifestyle == other.Lifestyle 
-            && info.Dependency.ServiceType == other.Dependency.ServiceType 
+        internal static bool EqualsTo(RelationshipInfo info, KnownRelationship other) =>
+            info.ImplementationType == other.ImplementationType
+            && info.Lifestyle == other.Lifestyle
+            && info.Dependency.ServiceType == other.Dependency.ServiceType
             && info.Dependency.Lifestyle == other.Dependency.Lifestyle;
 
         internal bool Equals(KnownRelationship other) => EqualsTo(this, other);
 
-        internal static string ToString(KnownRelationship relationship) => 
+        internal static string ToString(KnownRelationship relationship) =>
             string.Format("ImplementationType: {0}, Lifestyle: {1}, Dependency: {2}",
                 relationship.ImplementationType.ToFriendlyName(),
                 relationship.Lifestyle.Name,

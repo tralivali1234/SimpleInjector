@@ -121,7 +121,7 @@ namespace SimpleInjector.Tests.Unit
         {
             // Arrange
             var container = ContainerFactory.New();
-            container.RegisterCollection<IUserRepository>(new IUserRepository[] { new SqlUserRepository(), new InMemoryUserRepository() });
+            container.Collection.Register<IUserRepository>(new IUserRepository[] { new SqlUserRepository(), new InMemoryUserRepository() });
 
             // Act
             container.Verify();
@@ -135,7 +135,7 @@ namespace SimpleInjector.Tests.Unit
 
             IEnumerable<IUserRepository> repositories = new IUserRepository[] { null };
 
-            container.RegisterCollection<IUserRepository>(repositories);
+            container.Collection.Register<IUserRepository>(repositories);
 
             try
             {
@@ -164,7 +164,7 @@ namespace SimpleInjector.Tests.Unit
                 where nullRepository.ToString() == "This line fails with an NullReferenceException"
                 select nullRepository;
 
-            container.RegisterCollection<IUserRepository>(repositories);
+            container.Collection.Register<IUserRepository>(repositories);
 
             // Act
             Action action = () => container.Verify();
@@ -187,7 +187,7 @@ namespace SimpleInjector.Tests.Unit
             // Assert
             AssertThat.Throws<InvalidOperationException>(action);
         }
-        
+
         [TestMethod]
         public void Verify_GetRegistrationCalledOnUnregisteredAbstractType_Succeeds()
         {
@@ -210,7 +210,7 @@ namespace SimpleInjector.Tests.Unit
             container.Options.AllowOverridingRegistrations = true;
 
             container.Register<IUserRepository, SqlUserRepository>();
-            
+
             container.Verify();
 
             try
@@ -292,7 +292,7 @@ namespace SimpleInjector.Tests.Unit
                 AssertThat.ExceptionMessageContains("The container can't be changed", ex);
             }
         }
-        
+
         [TestMethod]
         public void Verify_RegisterCollectionCalledWithUnregisteredType_ThrowsExpectedException()
         {
@@ -303,7 +303,7 @@ namespace SimpleInjector.Tests.Unit
 
             var types = new[] { typeof(SqlUserRepository), typeof(IUserRepository) };
 
-            container.RegisterCollection<IUserRepository>(types);
+            container.Collection.Register<IUserRepository>(types);
 
             try
             {
@@ -331,10 +331,10 @@ namespace SimpleInjector.Tests.Unit
 
             container.Register<PluginImpl>();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl) });
 
             container.RegisterInitializer<PluginImpl>(plugin => actualNumberOfCreatedPlugins++);
-            
+
             // Act
             container.Verify();
 
@@ -348,7 +348,7 @@ namespace SimpleInjector.Tests.Unit
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl) });
 
             // FailingConstructorDecorator constructor throws an exception.
             container.RegisterDecorator(typeof(IPlugin), typeof(FailingConstructorPluginDecorator));
@@ -443,14 +443,14 @@ namespace SimpleInjector.Tests.Unit
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginWithBooleanDependency) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginWithBooleanDependency) });
 
             // Act
             Action action = () => container.Verify();
-            
+
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<InvalidOperationException>(@"
-                contains parameter 'isInUserContext' of type Boolean which can not be used for constructor 
+                contains parameter 'isInUserContext' of type Boolean, which can not be used for constructor 
                 injection because it is a value type."
                 .TrimInside(),
                 action);
@@ -477,7 +477,7 @@ namespace SimpleInjector.Tests.Unit
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), new[]
+            container.Collection.Register(typeof(IEventHandler<>), new[]
             {
                 typeof(StructEventHandler),
                 typeof(AuditableEventEventHandler),
@@ -496,12 +496,12 @@ namespace SimpleInjector.Tests.Unit
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection(typeof(IEventHandler<>), new Type[]
+            container.Collection.Register(typeof(IEventHandler<>), new Type[]
             {
                 typeof(StructEventHandler),
             });
 
-            container.Collections.AppendTo(typeof(IEventHandler<>),
+            container.Collection.Append(typeof(IEventHandler<>),
                 Lifestyle.Singleton.CreateRegistration<AuditableEventEventHandler>(container));
 
             var handler = container.GetAllInstances<IEventHandler<AuditableEvent>>().Single();
@@ -525,7 +525,7 @@ namespace SimpleInjector.Tests.Unit
             // Lifestyle Mismatch
             container.Register<ServiceWithDependency<IPlugin>>(Lifestyle.Singleton);
             container.Register<IPlugin, PluginImpl>();
-            
+
             // Act
             container.Verify(VerificationOption.VerifyOnly);
         }
@@ -546,7 +546,7 @@ namespace SimpleInjector.Tests.Unit
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<InvalidOperationException>(
-                "A lifestyle mismatch is encountered",
+                "lifestyle mismatch",
                 action);
         }
 
@@ -566,7 +566,7 @@ namespace SimpleInjector.Tests.Unit
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ActivationException>(
-                "A lifestyle mismatch is encountered",
+                "lifestyle mismatch",
                 action);
         }
 

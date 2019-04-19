@@ -108,19 +108,19 @@
             // Arrange
             string expectedMessage1 =
                 "The registration for IFoo maps to the same implementation and lifestyle as the " +
-                "registrations for IFooExt, IBar and IBarExt do. They all map to FooBar (Singleton).";
+                "registrations for IFooExt, IBar, and IBarExt do. They all map to FooBar (Singleton).";
 
             string expectedMessage2 =
                 "The registration for IFooExt maps to the same implementation and lifestyle as the " +
-                "registrations for IFoo, IBar and IBarExt do.";
+                "registrations for IFoo, IBar, and IBarExt do.";
 
             string expectedMessage3 =
                 "The registration for IBar maps to the same implementation and lifestyle as the " +
-                "registrations for IFoo, IFooExt and IBarExt do.";
+                "registrations for IFoo, IFooExt, and IBarExt do.";
 
             string expectedMessage4 =
                 "The registration for IBarExt maps to the same implementation and lifestyle as the " +
-                "registrations for IFoo, IFooExt and IBar do.";
+                "registrations for IFoo, IFooExt, and IBar do.";
 
             var container = new Container();
 
@@ -164,7 +164,7 @@
             // Assert
             Assert.AreEqual(0, results.Length, Actual(results));
         }
-        
+
         [TestMethod]
         public void Analyze_Uncached_OneViolationWithSuppressDiagnosticWarningOnOneRegistration_OneWarning()
         {
@@ -512,7 +512,7 @@
             var reg1 = Lifestyle.Singleton.CreateRegistration<IFoo>(() => new FooBar(), container);
             var reg2 = Lifestyle.Singleton.CreateRegistration<IFoo>(() => new ChocolateBar(), container);
 
-            container.RegisterCollection(typeof(IFoo), new[] { reg1, reg2 });
+            container.Collection.Register(typeof(IFoo), new[] { reg1, reg2 });
 
             container.Verify();
 
@@ -535,7 +535,7 @@
             var reg1 = Lifestyle.Singleton.CreateRegistration<FooBar>(() => new FooBar(), container);
             var reg2 = Lifestyle.Singleton.CreateRegistration<FooBar>(() => new FooBarSub(), container);
 
-            container.RegisterCollection(typeof(IFoo), new[] { reg1, reg2 });
+            container.Collection.Register(typeof(IFoo), new[] { reg1, reg2 });
 
             container.Verify();
 
@@ -558,7 +558,7 @@
             var reg1 = Lifestyle.Singleton.CreateRegistration<FooBar>(container);
             var reg2 = Lifestyle.Singleton.CreateRegistration<FooBar>(container);
 
-            container.RegisterCollection(typeof(IFoo), new[] { reg1, reg2 });
+            container.Collection.Register(typeof(IFoo), new[] { reg1, reg2 });
 
             container.Verify(VerificationOption.VerifyOnly);
 
@@ -578,7 +578,7 @@
             var reg1 = Lifestyle.Singleton.CreateRegistrationInternal<FooBar>(container, preventTornLifestyles: false);
             var reg2 = Lifestyle.Singleton.CreateRegistrationInternal<FooBar>(container, preventTornLifestyles: false);
 
-            container.RegisterCollection(typeof(IFoo), new[] { reg1, reg2 });
+            container.Collection.Register(typeof(IFoo), new[] { reg1, reg2 });
 
             container.Verify(VerificationOption.VerifyOnly);
 

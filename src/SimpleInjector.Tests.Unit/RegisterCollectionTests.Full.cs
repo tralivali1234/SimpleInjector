@@ -1,5 +1,6 @@
 ﻿namespace SimpleInjector.Tests.Unit
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -13,7 +14,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
 
             // Act
             IReadOnlyCollection<IPlugin> collection =
@@ -31,7 +32,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
 
             container.RegisterDecorator(typeof(IPlugin), typeof(PluginDecorator));
 
@@ -51,7 +52,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>();
+            container.Collection.Register<IPlugin>(Type.EmptyTypes);
 
             // Act
             IReadOnlyCollection<IPlugin> collection =
@@ -67,7 +68,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
 
             // Act
             IReadOnlyList<IPlugin> list =
@@ -85,7 +86,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginImpl), typeof(PluginImpl2) });
 
             container.RegisterDecorator(typeof(IPlugin), typeof(PluginDecorator));
 
@@ -105,7 +106,7 @@
             // Arrange
             var container = ContainerFactory.New();
 
-            container.RegisterCollection<IPlugin>();
+            container.Collection.Register<IPlugin>(Type.EmptyTypes);
 
             // Act
             IReadOnlyList<IPlugin> list =

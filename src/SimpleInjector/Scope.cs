@@ -23,8 +23,8 @@
 namespace SimpleInjector
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
-    using SimpleInjector.Advanced;
     using SimpleInjector.Internals;
     using SimpleInjector.Lifestyles;
 
@@ -35,12 +35,12 @@ namespace SimpleInjector
     /// </remarks>
     public class Scope : IDisposable
     {
-        private const int MaxRecursion = 100;
+        private const int MaximumDisposeRecursion = 100;
 
         private readonly object syncRoot = new object();
         private readonly ScopeManager manager;
 
-        private Dictionary<object, object> items;
+        private IDictionary items;
         private Dictionary<Registration, object> cachedInstances;
         private List<Action> scopeEndActions;
         private List<IDisposable> disposables;
@@ -83,6 +83,41 @@ namespace SimpleInjector
         internal bool Disposed => this.state == DisposeState.Disposed;
 
         internal Scope ParentScope { get; }
+
+        /// <summary>Gets an instance of the given <typeparamref name="TService"/> for the current scope.</summary>
+        /// <typeparam name="TService">The type of the service to resolve.</typeparam>
+        /// <returns>An instance of the given service type.</returns>
+        public TService GetInstance<TService>() where TService : class
+        {
+            return (TService)this.GetInstance(typeof(TService));
+        }
+
+        /// <summary>Gets an instance of the given <paramref name="serviceType" /> for the current scope.</summary>
+        /// <param name="serviceType">The type of the service to resolve.</param>
+        /// <returns>An instance of the given service type.</returns>
+        public object GetInstance(Type serviceType)
+        {
+            Requires.IsNotNull(serviceType, nameof(serviceType));
+
+            if (this.Container == null)
+            {
+                throw new InvalidOperationException(
+                    "This method can only be called on Scope instances that are related to a Container. " +
+                    "Please use the overloaded constructor of Scope create an instance with a Container.");
+            }
+
+            Scope originalScope = this.Container.CurrentThreadResolveScope;
+
+            try
+            {
+                this.Container.CurrentThreadResolveScope = this;
+                return this.Container.GetInstance(serviceType);
+            }
+            finally
+            {
+                this.Container.CurrentThreadResolveScope = originalScope;
+            }
+        }
 
         /// <summary>
         /// Allows registering an <paramref name="action"/> delegate that will be called when the scope ends,
@@ -164,10 +199,7 @@ namespace SimpleInjector
 
             lock (this.syncRoot)
             {
-                object value;
-                return this.items != null && this.items.TryGetValue(key, out value) 
-                    ? value 
-                    : null;
+                return this.items?[key];
             }
         }
 
@@ -186,12 +218,12 @@ namespace SimpleInjector
 
             lock (this.syncRoot)
             {
-                if (this.items == null)
+                if (this.items is null)
                 {
                     this.items = new Dictionary<object, object>(capacity: 1);
                 }
 
-                if (object.ReferenceEquals(item, null))
+                if (item is null)
                 {
                     this.items.Remove(key);
                 }
@@ -246,6 +278,26 @@ namespace SimpleInjector
             return scope.GetInstanceInternal(registration);
         }
 
+        internal T GetOrSetItem<T>(object key, Func<Container, object, T> valueFactory)
+        {
+            lock (this.syncRoot)
+            {
+                if (this.items is null)
+                {
+                    this.items = new Dictionary<object, object>(capacity: 1);
+                }
+
+                object item = this.items[key];
+
+                if (item is null)
+                {
+                    this.items[key] = item = valueFactory(this.Container, key);
+                }
+
+                return (T)item;
+            }
+        }
+
         /// <summary>
         /// Releases all instances that are cached by the <see cref="Scope"/> object.
         /// </summary>
@@ -282,6 +334,7 @@ namespace SimpleInjector
                         this.cachedInstances = null;
                         this.scopeEndActions = null;
                         this.disposables = null;
+                        this.items = null;
 
                         this.manager?.RemoveScope(this);
                     }
@@ -332,7 +385,7 @@ namespace SimpleInjector
             {
                 // We must break out of the recursion when we reach MaxRecursion, because not doing so
                 // could cause a stack overflow.
-                if (this.recursionDuringDisposalCounter <= MaxRecursion)
+                if (this.recursionDuringDisposalCounter <= MaximumDisposeRecursion)
                 {
                     this.DisposeRecursively(operatingInException);
                 }
@@ -358,7 +411,7 @@ namespace SimpleInjector
             ScopedRegistration<TImplementation> registration)
             where TImplementation : class
         {
-            if (registration.Container.IsVerifying())
+            if (registration.Container.IsVerifying)
             {
                 return registration.Container.VerificationScope.GetInstanceInternal(registration);
             }
@@ -401,9 +454,7 @@ namespace SimpleInjector
 
             this.cachedInstances[registration] = instance;
 
-            var disposable = instance as IDisposable;
-
-            if (disposable != null)
+            if (instance is IDisposable disposable)
             {
                 this.RegisterForDisposalInternal(disposable);
             }
@@ -418,7 +469,7 @@ namespace SimpleInjector
         {
             if (this.disposables == null)
             {
-                this.disposables = new List<IDisposable>(capacity: 8);
+                this.disposables = new List<IDisposable>(capacity: 4);
             }
 
             this.disposables.Add(disposable);
@@ -457,21 +508,19 @@ namespace SimpleInjector
 #endif
         private void PreventCyclicDependenciesDuringDisposal()
         {
-            if (this.recursionDuringDisposalCounter > MaxRecursion)
+            if (this.recursionDuringDisposalCounter > MaximumDisposeRecursion)
             {
                 ThrowRecursionException();
             }
         }
 
-        private static void ThrowRecursionException()
-        {
+        private static void ThrowRecursionException() =>
             throw new InvalidOperationException(StringResources.RecursiveInstanceRegistrationDetected());
-        }
 
         // This method simulates the behavior of a set of nested 'using' statements: It ensures that dispose
         // is called on each element, even if a previous instance threw an exception. 
-        private static void DisposeInstancesInReverseOrder(List<IDisposable> disposables,
-            int startingAsIndex = int.MinValue)
+        private static void DisposeInstancesInReverseOrder(
+            List<IDisposable> disposables, int startingAsIndex = int.MinValue)
         {
             if (startingAsIndex == int.MinValue)
             {

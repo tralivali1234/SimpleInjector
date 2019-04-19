@@ -60,7 +60,7 @@
             // Arrange
             var container = new Container();
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(SomePluginImpl) });
+            container.Collection.Register<IPlugin>(new[] { typeof(SomePluginImpl) });
 
             container.Verify();
 
@@ -82,10 +82,10 @@
 
             container.Register(typeof(IGeneric<>), typeof(GenericType<>));
 
-            container.RegisterCollection<IPlugin>(new[] { typeof(PluginWith8Dependencies) });
+            container.Collection.Register<IPlugin>(new[] { typeof(PluginWith8Dependencies) });
 
             container.Verify();
-            
+
             // Act
             var results = Analyzer.Analyze(container);
 
@@ -95,7 +95,7 @@
             Assert.AreEqual(1, results.OfType<SingleResponsibilityViolationDiagnosticResult>().Count(),
                 "An SRP violation is expected.");
         }
-        
+
         private static void Assert_CreatingARegistrationWithMismatchTriggersAWarning(
             Func<Container, InstanceProducer> createLifestyleMismatch)
         {
@@ -123,5 +123,5 @@
 
             GC.KeepAlive(producer);
         }
-   }
+    }
 }

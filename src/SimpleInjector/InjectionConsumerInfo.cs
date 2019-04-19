@@ -1,7 +1,7 @@
 ﻿#region Copyright Simple Injector Contributors
 /* The Simple Injector is an easy-to-use Inversion of Control library for .NET
  * 
- * Copyright (c) 2015-2016 Simple Injector Contributors
+ * Copyright (c) 2015-2019 Simple Injector Contributors
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and 
  * associated documentation files (the "Software"), to deal in the Software without restriction, including 
@@ -30,10 +30,10 @@ namespace SimpleInjector
     /// Contains contextual information about the direct consumer for which the given dependency is injected
     /// into.
     /// </summary>
-    public class InjectionConsumerInfo
+    public class InjectionConsumerInfo : IEquatable<InjectionConsumerInfo>
     {
         internal static readonly InjectionConsumerInfo Root = null;
-        
+
         /// <summary>Initializes a new instance of the <see cref="InjectionConsumerInfo"/> class.</summary>
         /// <param name="parameter">The constructor parameter for the created component.</param>
         public InjectionConsumerInfo(ParameterInfo parameter)
@@ -84,10 +84,31 @@ namespace SimpleInjector
         /// <value>The <see cref="InjectionTargetInfo"/> for this context.</value>
         public InjectionTargetInfo Target { get; }
 
+        /// <summary>Serves as a hash function for a particular type.</summary>
+        /// <returns>A hash code for the current <see cref="InjectionConsumerInfo"/>.</returns>
+        public override int GetHashCode() =>
+            this.ImplementationType.GetHashCode() ^ this.Target.GetHashCode();
+
+        /// <summary>
+        ///  Determines whether the specified object is equal to the current object.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>
+        public override bool Equals(object obj) => this.Equals(obj as InjectionConsumerInfo);
+
+        /// <summary>
+        /// Indicates whether the current object is equal to another object of the same type.
+        /// </summary>
+        /// <param name="other">An object to compare with this object.</param>
+        /// <returns>true if the current object is equal to the other parameter; otherwise, false.</returns>
+        public bool Equals(InjectionConsumerInfo other) =>
+            this.ImplementationType.Equals(other.ImplementationType)
+            && this.Target.Equals(other.Target);
+
         /// <summary>Returns a string that represents the <see cref="InjectionConsumerInfo"/>.</summary>
         /// <returns>A string.</returns>
-        public override string ToString() => 
-            "{ ImplementationType: " + this.ImplementationType.ToFriendlyName() + 
+        public override string ToString() =>
+            "{ ImplementationType: " + this.ImplementationType.ToFriendlyName() +
             ", Target.Name: '" + this.Target.Name + "' }";
     }
 }

@@ -1,6 +1,8 @@
 # Simple Injector
 
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/simpleinjector/SimpleInjector?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build status](https://ci.appveyor.com/api/projects/status/2k9ududhkqqufk76?svg=true)](https://ci.appveyor.com/project/simpleinjector/simpleinjector) [![NuGet](https://img.shields.io/nuget/v/SimpleInjector.svg)](https://www.nuget.org/packages/simpleinjector)
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/simpleinjector/SimpleInjector?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![NuGet](https://img.shields.io/nuget/v/SimpleInjector.svg)](https://www.nuget.org/packages/simpleinjector)
+
+<!--- [![Build status](https://ci.appveyor.com/api/projects/status/2k9ududhkqqufk76?svg=true)](https://ci.appveyor.com/project/simpleinjector/simpleinjector) --->
 
 _**To get a high level overview of Simple Injector, please [visit our website](https://simpleinjector.org/)** or dive directly into our [documentation](https://simpleinjector.org/documentation). And did you know there's a [Simple Injector blog](https://simpleinjector.org/blog)?_
 
@@ -11,11 +13,11 @@ Many of the existing DI libraries have a big complicated legacy API or are new, 
 The following platforms are supported:
 
 * *.NET 4.0* and up.
-* *Silverlight 4* and up.
-* *Windows Phone 8*.
-* *Windows Store Apps*.
-* *Mono*.
-* *.NET Core*.
+* .NET Standard including:
+  * Universal Windows Programs. 
+  * Mono. 
+  * .NET Core. 
+  * Xamarin.
 
 > Simple Injector is carefully designed to run in **partial / medium trust**, and it is fast; blazingly fast.
 

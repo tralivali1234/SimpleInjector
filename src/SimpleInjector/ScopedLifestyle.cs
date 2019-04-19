@@ -23,7 +23,6 @@
 namespace SimpleInjector
 {
     using System;
-    using System.Diagnostics;
     using SimpleInjector.Lifestyles;
 
     /// <summary>
@@ -35,6 +34,14 @@ namespace SimpleInjector
     /// </summary>
     public abstract class ScopedLifestyle : Lifestyle
     {
+        /// <summary>
+        /// Gets the scoped lifestyle that allows Scoped registrations to be resolved direclty from the
+        /// <see cref="Scope"/> by calling <see cref="Scope.GetInstance{TService}()"/>. This allows multiple
+        /// scopes to be active and overlap within the same logical context, such as a single thread, or an
+        /// asynchronous context.
+        /// </summary>
+        public static readonly ScopedLifestyle Flowing = new FlowingScopedLifestyle();
+
         /// <summary>Initializes a new instance of the <see cref="ScopedLifestyle"/> class.</summary>
         /// <param name="name">The user friendly name of this lifestyle.</param>
         /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null (Nothing in VB) 
@@ -50,7 +57,7 @@ namespace SimpleInjector
         /// <exception cref="ArgumentException">Thrown when <paramref name="name"/> is null (Nothing in VB) 
         /// or an empty string.</exception>
         [Obsolete(
-            "This constructor overload is deprecated. The disposal of instances can't be suppressed anymore", 
+            "This constructor overload is deprecated. The disposal of instances can't be suppressed anymore",
             error: true)]
         protected ScopedLifestyle(string name, bool disposeInstances) : base(name)
         {
@@ -138,8 +145,8 @@ namespace SimpleInjector
         /// <param name="container">The <see cref="Container"/> instance for which a 
         /// <see cref="Registration"/> must be created.</param>
         /// <returns>A new <see cref="Registration"/> instance.</returns>
-        protected internal override Registration CreateRegistrationCore<TService>(Func<TService> instanceCreator,
-            Container container)
+        protected internal override Registration CreateRegistrationCore<TService>(
+            Func<TService> instanceCreator, Container container)
         {
             Requires.IsNotNull(instanceCreator, nameof(instanceCreator));
             Requires.IsNotNull(container, nameof(container));
@@ -204,14 +211,12 @@ namespace SimpleInjector
         {
             // If we are running verification in the current thread, we prefer returning a verification scope
             // over a real active scope (issue #95).
-            return container.GetVerificationScopeForCurrentThread()
+            return container.GetVerificationOrResolveScopeForCurrentThread()
                 ?? this.GetCurrentScopeCore(container);
         }
 
-        private void ThrowThisMethodCanOnlyBeCalledWithinTheContextOfAnActiveScope()
-        {
+        private void ThrowThisMethodCanOnlyBeCalledWithinTheContextOfAnActiveScope() =>
             throw new InvalidOperationException(
                 StringResources.ThisMethodCanOnlyBeCalledWithinTheContextOfAnActiveScope(this));
-        }
     }
 }

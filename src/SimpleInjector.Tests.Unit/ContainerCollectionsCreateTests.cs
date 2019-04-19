@@ -1,13 +1,21 @@
 ﻿namespace SimpleInjector.Tests.Unit
 {
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Reflection;
     using Microsoft.VisualStudio.TestTools.UnitTesting;
 
     [TestClass]
     public class ContainerCollectionsCreateTests
     {
+        public interface ILogStuf
+        {
+        }
+
+        private static readonly Assembly CurrentAssembly = typeof(RegisterCollectionTests).GetTypeInfo().Assembly;
+
         [TestMethod]
         public void Create_WhenReturnedCollectionIterated_ProducesTheExpectedInstances()
         {
@@ -17,7 +25,7 @@
             var container = new Container();
 
             // Act
-            var stream = container.Collections.Create<ILogger>(expectedTypes);
+            var stream = container.Collection.Create<ILogger>(expectedTypes);
 
             // Assert
             AssertThat.SequenceEquals(expectedTypes, actualTypes: stream.Select(GetType));
@@ -33,8 +41,8 @@
             var container = new Container();
 
             // Act
-            var stream1 = container.Collections.Create<ILogger>(expectedTypes1);
-            var stream2 = container.Collections.Create<ILogger>(expectedTypes2);
+            var stream1 = container.Collection.Create<ILogger>(expectedTypes1);
+            var stream2 = container.Collection.Create<ILogger>(expectedTypes2);
 
             // Assert
             AssertThat.SequenceEquals(expectedTypes1, actualTypes: stream1.Select(GetType));
@@ -50,7 +58,7 @@
             container.Register<ILogger, ConsoleLogger>();
 
             // Act
-            var stream = container.Collections.Create<ILogger>(typeof(ILogger));
+            var stream = container.Collection.Create<ILogger>(typeof(ILogger));
 
             // Assert
             AssertThat.SequenceEquals(
@@ -64,7 +72,7 @@
             // Arrange
             var container = new Container();
 
-            var stream = container.Collections.Create<ILogger>(typeof(ConsoleLogger));
+            var stream = container.Collection.Create<ILogger>(typeof(ConsoleLogger));
 
             stream.First();
 
@@ -87,7 +95,7 @@
             container.Register<NullLogger>(Lifestyle.Singleton);
 
             // Act
-            var stream = container.Collections.Create<ILogger>(typeof(ConsoleLogger), typeof(NullLogger));
+            var stream = container.Collection.Create<ILogger>(typeof(ConsoleLogger), typeof(NullLogger));
 
             // Assert
             Assert.AreNotSame(stream.First(), stream.First(), "ConsoleLogger was expected to be transient.");
@@ -101,7 +109,7 @@
             var container = new Container();
 
             // Act
-            var stream = container.Collections.Create<ILogger>(
+            var stream = container.Collection.Create<ILogger>(
                 Lifestyle.Singleton.CreateRegistration<ConsoleLogger>(container),
                 Lifestyle.Transient.CreateRegistration<NullLogger>(container));
 
@@ -111,7 +119,7 @@
             Assert.AreSame(stream.First(), stream.First(), "ConsoleLogger was expected to be singleton.");
             Assert.AreNotSame(stream.Second(), stream.Second(), "NullLogger was expected to be transient.");
         }
-                
+
         [TestMethod]
         public void Create_MultipleStreamsUsingTheSameSingletonComponent_PreservesLifestyleAcrossStreams()
         {
@@ -124,8 +132,8 @@
             container.Register<NullLogger>(Lifestyle.Singleton);
 
             // Act
-            var stream1 = container.Collections.Create<ILogger>(expectedTypes1);
-            var stream2 = container.Collections.Create<ILogger>(expectedTypes2);
+            var stream1 = container.Collection.Create<ILogger>(expectedTypes1);
+            var stream2 = container.Collection.Create<ILogger>(expectedTypes2);
 
             var nullLoggerFromStream1 = stream1.OfType<NullLogger>().Single();
             var nullLoggerFromStream2 = stream2.OfType<NullLogger>().Single();
@@ -140,7 +148,7 @@
             // Arrange
             var container = new Container();
 
-            var stream = container.Collections.Create<ILogger>(typeof(FailingConstructorLogger));
+            var stream = container.Collection.Create<ILogger>(typeof(FailingConstructorLogger));
 
             // Notice the explicit call to GC.Collect(). Simple Injector holds on to 'stuff' using WeakReferences
             // to ensure that to memory is leaked, but as long as stream is referenced, should it as well be
@@ -157,16 +165,16 @@
 
             GC.KeepAlive(stream);
         }
-        
+
         [TestMethod]
         public void Verify_WhenCollectionIsCreatedForRegistrationThatFailsDuringCreation_VerifyTestsTheCollection()
         {
             // Arrange
             var container = new Container();
 
-            var stream = container.Collections.Create<ILogger>(
+            var stream = container.Collection.Create<ILogger>(
                 Lifestyle.Transient.CreateRegistration<FailingConstructorLogger>(container));
-            
+
             // Notice the explicit call to GC.Collect(). Simple Injector holds on to 'stuff' using WeakReferences
             // to ensure that to memory is leaked, but as long as stream is referenced, should it as well be
             // verified
@@ -182,14 +190,14 @@
 
             GC.KeepAlive(stream);
         }
-        
+
         [TestMethod]
         public void Verify_WhenCollectionIsCreatedForTypeThatFailsDuringCreation_VerifySucceedsWhenCollectionWasAlreadyCollected()
         {
             // Arrange
             var container = new Container();
 
-            var stream = container.Collections.Create<ILogger>(typeof(FailingConstructorLogger));
+            var stream = container.Collection.Create<ILogger>(typeof(FailingConstructorLogger));
 
             // Explicitly clear the reference to stream, so ensure GC.Collect cleans it up (only needed when
             // running in debug).
@@ -205,7 +213,7 @@
             // a memory leak.
             container.Verify();
         }
-        
+
         [TestMethod]
         public void Create_SuppliedWithNullTypeArray_ThrowsArgumentNullException()
         {
@@ -213,7 +221,7 @@
             var container = new Container();
 
             // Act
-            Action action = () => container.Collections.Create<ILogger>((Type[])null);
+            Action action = () => container.Collection.Create<ILogger>((Type[])null);
 
             // Assert
             AssertThat.ThrowsWithParamName<ArgumentNullException>("serviceTypes", action);
@@ -226,7 +234,7 @@
             var container = new Container();
 
             // Act
-            Action action = () => container.Collections.Create<ILogger>((IEnumerable<Type>)null);
+            Action action = () => container.Collection.Create<ILogger>((IEnumerable<Type>)null);
 
             // Assert
             AssertThat.ThrowsWithParamName<ArgumentNullException>("serviceTypes", action);
@@ -241,7 +249,7 @@
             var container = new Container();
 
             // Act
-            Action action = () => container.Collections.Create<ILogger>(expectedTypes);
+            Action action = () => container.Collection.Create<ILogger>(expectedTypes);
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
@@ -258,7 +266,7 @@
             var container = new Container();
 
             // Act
-            Action action = () => container.Collections.Create<ILogger>(listWithIncompatibleType);
+            Action action = () => container.Collection.Create<ILogger>(listWithIncompatibleType);
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
@@ -275,14 +283,66 @@
             var container = new Container();
 
             // Act
-            Action action = () => container.Collections.Create<ILogger>(new[] { invalidType });
+            Action action = () => container.Collection.Create<ILogger>(new[] { invalidType });
 
             // Assert
             AssertThat.ThrowsWithExceptionMessageContains<ArgumentException>(
-                "The supplied type Logger<T> is an open generic type.",
+                "The supplied type Logger<T> is an open-generic type.",
                 action);
         }
 
+        [TestMethod]
+        public void RegisterCollectionTServiceAssemblyArray_RegisteringNonGenericServiceAndAssemblyWithMultipleImplementations_RegistersThoseImplementations()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            // Act
+            var loggers = container.Collection.Create<ILogStuf>(new[] { CurrentAssembly });
+
+            // Assert
+            Assert_ContainsAllLoggers(loggers);
+        }
+
+        [TestMethod]
+        public void RegisterCollectionTServiceAssemblyEnumerable_AccidentallyUsingTheSameAssemblyTwice_RegistersThoseImplementationsOnce()
+        {
+            // Arrange
+            var container = ContainerFactory.New();
+
+            var assemblies = Enumerable.Repeat(CurrentAssembly, 2);
+
+            // Act
+            var loggers = container.Collection.Create<ILogStuf>(assemblies);
+
+            // Assert
+            Assert_ContainsAllLoggers(loggers);
+        }
+
         private static Type GetType<T>(T instance) => instance.GetType();
+
+        private static void Assert_ContainsAllLoggers(IEnumerable loggers)
+        {
+            var instances = loggers.Cast<ILogStuf>().ToArray();
+
+            string types = string.Join(", ", instances.Select(instance => instance.GetType().Name));
+
+            Assert.AreEqual(3, instances.Length, "Actual: " + types);
+            Assert.IsTrue(instances.OfType<LogStuff1>().Any(), "Actual: " + types);
+            Assert.IsTrue(instances.OfType<LogStuff2>().Any(), "Actual: " + types);
+            Assert.IsTrue(instances.OfType<LogStuff3>().Any(), "Actual: " + types);
+        }
+
+        public class LogStuff1 : ILogStuf
+        {
+        }
+
+        public class LogStuff2 : ILogStuf
+        {
+        }
+
+        public class LogStuff3 : ILogStuf
+        {
+        }
     }
 }
